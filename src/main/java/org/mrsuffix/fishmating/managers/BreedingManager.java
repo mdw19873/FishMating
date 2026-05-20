@@ -11,6 +11,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
@@ -90,13 +91,28 @@ public class BreedingManager {
     private void checkBreedingPairs(List<FishData> breedingReadyFish, ConfigManager config) {
         double radius = config.getDetectionRadius();
 
+        // Track fish already paired this cycle instead of mutating the list while
+        // iterating it by index (which could shift indices and skip fish).
+        Set<FishData> paired = new HashSet<>();
+
         for (int i = 0; i < breedingReadyFish.size(); i++) {
             FishData fish1Data = breedingReadyFish.get(i);
+            if (paired.contains(fish1Data)) {
+                continue;
+            }
             Entity fish1 = fish1Data.getEntity();
 
             for (int j = i + 1; j < breedingReadyFish.size(); j++) {
                 FishData fish2Data = breedingReadyFish.get(j);
+                if (paired.contains(fish2Data)) {
+                    continue;
+                }
                 Entity fish2 = fish2Data.getEntity();
+
+                // distance() throws across worlds; only pair fish in the same world.
+                if (!fish1.getWorld().equals(fish2.getWorld())) {
+                    continue;
+                }
 
                 // Check if fish are within breeding range
                 if (fish1.getLocation().distance(fish2.getLocation()) <= radius) {
@@ -107,8 +123,9 @@ public class BreedingManager {
                     // Start breeding process
                     initiateBreeding(fish1Data, fish2Data, pair);
 
-                    // Remove from consideration for this cycle
-                    breedingReadyFish.remove(fish2Data);
+                    // Both fish are now spoken for this cycle
+                    paired.add(fish1Data);
+                    paired.add(fish2Data);
                     break;
                 }
             }

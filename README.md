@@ -97,6 +97,20 @@ Well-documented and clean to help new developers understand and contribute! 🧰
 
 ---
 
+## 🧪 Building & Testing
+
+Built with Maven against **Java 21** and `paper-api` for **1.21.11**.
+
+```bash
+mvn verify   # compile, run the test suite, and package the plugin jar
+```
+
+The project has an automated test suite (JUnit 6 + MockBukkit) with JaCoCo coverage
+reporting, and CI builds/tests on **Java 21 and 25**. See **[TESTING.md](./TESTING.md)**
+for the full testing methodology and conventions.
+
+---
+
 ## 📜 License
 
 This plugin is open-source under the **MIT License**.

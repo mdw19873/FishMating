@@ -1,0 +1,120 @@
+package com.mrsuffix.fishmating.managers;
+
+import com.mrsuffix.fishmating.FishMatingPlugin;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.MockBukkit;
+import org.mockbukkit.mockbukkit.ServerMock;
+import org.mockbukkit.mockbukkit.world.WorldMock;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+/**
+ * Integration tests for {@link BreedingManager}'s pairing logic, driven by ticking
+ * MockBukkit's scheduler so the real periodic breeding-check task runs.
+ *
+ * <p>The breeding-check task first fires at tick 20; a single {@code performTicks(20)}
+ * runs it exactly once. Baby spawning / pair completion is scheduled 40 ticks later,
+ * so the freshly-formed pairs are still active when asserted.
+ */
+class BreedingManagerTest {
+
+    private ServerMock server;
+    private FishMatingPlugin plugin;
+    private BreedingManager breedingManager;
+
+    @BeforeEach
+    void setUp() {
+        server = MockBukkit.mock();
+        plugin = MockBukkit.load(FishMatingPlugin.class);
+        breedingManager = plugin.getBreedingManager();
+    }
+
+    @AfterEach
+    void tearDown() {
+        MockBukkit.unmock();
+    }
+
+    /** Spawns a salmon and marks it breeding-ready in the FishManager. */
+    private Entity spawnReadySalmon(WorldMock world, double x, double z) {
+        Entity salmon = world.spawnEntity(new Location(world, x, 64, z), EntityType.SALMON);
+        plugin.getFishManager().getFishData(salmon).setBreedingReady(true);
+        return salmon;
+    }
+
+    private void runBreedingCheck() {
+        server.getScheduler().performTicks(20L);
+    }
+
+    @Test
+    @DisplayName("Two breeding-ready fish within range form one pair")
+    void twoNearbyReadyFishPair() {
+        WorldMock world = server.addSimpleWorld("w");
+        spawnReadySalmon(world, 0, 0);
+        spawnReadySalmon(world, 2, 0);
+
+        runBreedingCheck();
+
+        assertEquals(1, breedingManager.getActiveBreedingPairCount());
+    }
+
+    @Test
+    @DisplayName("Breeding-ready fish beyond the detection radius do not pair")
+    void distantReadyFishDoNotPair() {
+        WorldMock world = server.addSimpleWorld("w");
+        spawnReadySalmon(world, 0, 0);
+        spawnReadySalmon(world, 20, 0);   // detection radius defaults to 5.0
+
+        runBreedingCheck();
+
+        assertEquals(0, breedingManager.getActiveBreedingPairCount());
+    }
+
+    @Test
+    @DisplayName("Fish that are not breeding-ready do not pair")
+    void notReadyFishDoNotPair() {
+        WorldMock world = server.addSimpleWorld("w");
+        world.spawnEntity(new Location(world, 0, 64, 0), EntityType.SALMON);
+        world.spawnEntity(new Location(world, 2, 64, 0), EntityType.SALMON);
+
+        runBreedingCheck();
+
+        assertEquals(0, breedingManager.getActiveBreedingPairCount());
+    }
+
+    @Test
+    @DisplayName("Bug #2: a fish in another world does not abort same-world pairing")
+    void crossWorldFishDoesNotBlockPairing() {
+        // The lone fish lives in the first-added world, so it is the first entity
+        // examined. Before the fix, comparing it to a fish in another world threw an
+        // IllegalArgumentException that aborted the entire breeding cycle.
+        WorldMock world1 = server.addSimpleWorld("w1");
+        WorldMock world2 = server.addSimpleWorld("w2");
+        spawnReadySalmon(world1, 0, 0);
+        spawnReadySalmon(world2, 0, 0);
+        spawnReadySalmon(world2, 2, 0);
+
+        runBreedingCheck();
+
+        assertEquals(1, breedingManager.getActiveBreedingPairCount());
+    }
+
+    @Test
+    @DisplayName("Bug #3: four nearby ready fish form exactly two pairs, none skipped")
+    void fourNearbyReadyFishFormTwoPairs() {
+        WorldMock world = server.addSimpleWorld("w");
+        spawnReadySalmon(world, 0, 0);
+        spawnReadySalmon(world, 1, 0);
+        spawnReadySalmon(world, 2, 0);
+        spawnReadySalmon(world, 3, 0);
+
+        runBreedingCheck();
+
+        assertEquals(2, breedingManager.getActiveBreedingPairCount());
+    }
+}

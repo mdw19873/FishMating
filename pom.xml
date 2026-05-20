@@ -18,6 +18,19 @@
         <maven.compiler.target>21</maven.compiler.target>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Test toolchain versions -->
+        <junit.version>6.1.0</junit.version>
+        <mockbukkit.version>4.110.0</mockbukkit.version>
+        <!-- Adventure: paper-api's types implement Adventure interfaces, but as a
+             'provided' dependency its transitive Adventure stack is not propagated to
+             our compile/test classpath. We import the adventure-bom (matching the
+             version paper-api 1.21.11 declares) to align every Adventure artifact —
+             including the serializers MockBukkit pulls in — and declare adventure-api
+             directly so compilation and MockBukkit can resolve it. -->
+        <adventure.version>4.26.1</adventure.version>
+        <jacoco.version>0.8.14</jacoco.version>
+        <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
     </properties>
 
     <repositories>
@@ -35,11 +48,60 @@
         </repository>
     </repositories>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- Aligns all JUnit 6 (Jupiter + Platform) artifacts to one version -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Aligns the whole Adventure stack (paper-api + MockBukkit) -->
+            <dependency>
+                <groupId>net.kyori</groupId>
+                <artifactId>adventure-bom</artifactId>
+                <version>${adventure.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.21.11-R0.2-SNAPSHOT</version>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.21.11-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Unit testing: JUnit 6 (Jupiter) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Required at runtime by Surefire to launch the JUnit Platform -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Integration testing: in-memory Bukkit server for the 1.21 API -->
+        <dependency>
+            <groupId>org.mockbukkit.mockbukkit</groupId>
+            <artifactId>mockbukkit-v1.21</artifactId>
+            <version>${mockbukkit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Needed to compile against paper-api and by MockBukkit at runtime
+             (see adventure.version note above) -->
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -57,6 +119,33 @@
                         <arg>-Xlint:unchecked</arg>
                     </compilerArgs>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <!-- Attach the coverage agent to the test JVM -->
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <!-- Generate HTML/XML/CSV report into target/site/jacoco -->
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

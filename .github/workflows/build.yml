@@ -45,3 +45,11 @@ jobs:
           name: fishmating-jar
           path: target/fishmating-*.jar
           if-no-files-found: error
+
+      - name: Upload JaCoCo coverage report
+        if: ${{ matrix.java == '21' && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: target/site/jacoco/
+          if-no-files-found: warn
