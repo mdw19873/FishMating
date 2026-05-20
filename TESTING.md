@@ -3,7 +3,7 @@
 This document describes the test framework, methodology, and conventions for the
 FishMating plugin.
 
-The suite currently has **45 tests** across 8 classes, covering **~84% of lines**
+The suite currently has **53 tests** across 9 classes, covering **~85% of lines**
 (~73% of branches). See [Coverage](#coverage) for the live report.
 
 ## Toolchain
@@ -51,6 +51,7 @@ and configuration end to end:
   lifecycle, and fish tracking.
 - `managers/BreedingManagerTest` — pairing rules (range, same world, no double-pairing).
 - `listeners/EntityListenerTest` — event-driven tracking and death cleanup.
+- `commands/FishMatingCommandTest` — `/fishmating reload` and its permission gate.
 - `utils/ParticleUtilsTest` — the exact particle types each effect emits.
 
 The MockBukkit lifecycle is:

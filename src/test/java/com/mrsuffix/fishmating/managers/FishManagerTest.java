@@ -179,4 +179,19 @@ class FishManagerTest {
 
         assertEquals(2, fishManager.getTrackedFish().size());
     }
+
+    @Test
+    @DisplayName("trackFish stops registering new fish once max-tracked-fish is reached")
+    void trackFishRespectsMaxTrackedCap() {
+        plugin.getConfig().set("advanced.max-tracked-fish", 2);
+        plugin.saveConfig();
+        plugin.getConfigManager().loadConfiguration();
+
+        for (int i = 0; i < 3; i++) {
+            Entity salmon = world.spawnEntity(new Location(world, i, 64, 0), EntityType.SALMON);
+            fishManager.trackFish(salmon);
+        }
+
+        assertEquals(2, fishManager.getTrackedFish().size());
+    }
 }

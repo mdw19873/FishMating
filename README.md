@@ -77,6 +77,16 @@ Everything from detection range to particle effects and breeding logic can be tw
 
 ---
 
+## 🧑‍✈️ Commands & Permissions
+
+| Command | Description | Permission |
+|---------|-------------|------------|
+| `/fishmating reload` (alias `/fm`) | Reloads `config.yml` without a server restart | `fishmating.admin` |
+
+`fishmating.admin` defaults to **op**.
+
+---
+
 ## 📂 Project Structure
 
 ```

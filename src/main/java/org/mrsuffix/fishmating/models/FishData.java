@@ -82,7 +82,7 @@ public class FishData {
      */
     public boolean canBreed(int cooldownMinutes) {
         if (lastBreedingTime == 0) return true;
-        long cooldownMillis = cooldownMinutes * 60 * 1000L;
+        long cooldownMillis = cooldownMinutes * 60_000L;
         return System.currentTimeMillis() - lastBreedingTime >= cooldownMillis;
     }
 

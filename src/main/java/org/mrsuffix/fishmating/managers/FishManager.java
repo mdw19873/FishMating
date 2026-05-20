@@ -257,9 +257,17 @@ public class FishManager {
      * @param entity The entity to consider tracking
      */
     public void trackFish(Entity entity) {
-        if (plugin.getConfigManager().getSeedForFish(entity.getType()) != null) {
-            fishDataMap.computeIfAbsent(entity.getUniqueId(), uuid -> new FishData(entity));
+        if (plugin.getConfigManager().getSeedForFish(entity.getType()) == null) {
+            return;
         }
+        UUID id = entity.getUniqueId();
+        // Bound automatic tracking to avoid unbounded growth on busy/abused servers.
+        // Already-tracked fish are always allowed through (idempotent re-tracking).
+        if (!fishDataMap.containsKey(id)
+                && fishDataMap.size() >= plugin.getConfigManager().getMaxTrackedFish()) {
+            return;
+        }
+        fishDataMap.computeIfAbsent(id, uuid -> new FishData(entity));
     }
 
     /**

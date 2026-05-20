@@ -1,11 +1,15 @@
 package com.mrsuffix.fishmating;
 
+import com.mrsuffix.fishmating.commands.FishMatingCommand;
 import com.mrsuffix.fishmating.listeners.EntityListener;
 import com.mrsuffix.fishmating.listeners.ItemDropListener;
 import com.mrsuffix.fishmating.managers.BreedingManager;
 import com.mrsuffix.fishmating.managers.ConfigManager;
 import com.mrsuffix.fishmating.managers.FishManager;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.logging.Level;
 
 /**
  * FishMating Plugin - Simulates fish breeding triggered by throwing seeds into water
@@ -35,6 +39,16 @@ public class FishMatingPlugin extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new ItemDropListener(this), this);
             getServer().getPluginManager().registerEvents(new EntityListener(this), this);
 
+            // Register the admin command (/fishmating reload)
+            PluginCommand fishMatingCommand = getCommand("fishmating");
+            if (fishMatingCommand != null) {
+                FishMatingCommand handler = new FishMatingCommand(this);
+                fishMatingCommand.setExecutor(handler);
+                fishMatingCommand.setTabCompleter(handler);
+            } else {
+                getLogger().warning("Command 'fishmating' is missing from plugin.yml");
+            }
+
             // Pick up fish that already exist in loaded worlds (e.g. after a reload).
             // Ongoing discovery is event-driven via the listeners above.
             this.fishManager.trackExistingFish();
@@ -44,8 +58,7 @@ public class FishMatingPlugin extends JavaPlugin {
             getLogger().info("Author: " + getDescription().getAuthors().get(0));
 
         } catch (Exception e) {
-            getLogger().severe("Failed to enable FishMating plugin: " + e.getMessage());
-            e.printStackTrace();
+            getLogger().log(Level.SEVERE, "Failed to enable FishMating plugin", e);
             getServer().getPluginManager().disablePlugin(this);
         }
     }

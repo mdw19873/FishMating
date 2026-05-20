@@ -8,7 +8,13 @@ website: https://github.com/mrsuffix/fishmating
 
 softdepend: []
 
+commands:
+  fishmating:
+    description: FishMating administrative commands
+    usage: /fishmating reload
+    aliases: [fm]
+
 permissions:
   fishmating.admin:
-    description: Administrative permissions for FishMating
+    description: Allows reloading the FishMating configuration
     default: op

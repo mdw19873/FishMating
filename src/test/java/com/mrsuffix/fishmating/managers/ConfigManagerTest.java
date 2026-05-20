@@ -76,4 +76,34 @@ class ConfigManagerTest {
 
         assertEquals(original, config.getFishSeedMappings().size());
     }
+
+    @Test
+    @DisplayName("max-tracked-fish is loaded (default 1000)")
+    void loadsMaxTrackedFish() {
+        assertEquals(1000, config.getMaxTrackedFish());
+    }
+
+    @Test
+    @DisplayName("A missing fish-mappings section is handled gracefully")
+    void missingFishMappingsSectionIsSafe() {
+        plugin.getConfig().set("fish-mappings", null);
+        plugin.saveConfig();
+
+        config.loadConfiguration(); // must not throw
+
+        assertTrue(config.getFishSeedMappings().isEmpty());
+    }
+
+    @Test
+    @DisplayName("A mapping with a missing seed value is skipped, not fatal")
+    void missingSeedValueSkipsOnlyThatEntry() {
+        plugin.getConfig().set("fish-mappings.salmon", null); // remove salmon's seed
+        plugin.saveConfig();
+
+        config.loadConfiguration(); // must not throw
+
+        // salmon is dropped, but the other mappings still load
+        assertNull(config.getSeedForFish(EntityType.SALMON));
+        assertEquals(Material.PUMPKIN_SEEDS, config.getSeedForFish(EntityType.COD));
+    }
 }
