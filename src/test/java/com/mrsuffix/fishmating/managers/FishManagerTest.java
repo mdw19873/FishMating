@@ -14,6 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.ServerMock;
+import org.mockbukkit.mockbukkit.entity.SimpleEntityMock;
 import org.mockbukkit.mockbukkit.world.WorldMock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -154,5 +155,28 @@ class FishManagerTest {
 
         fishManager.removeFishData(salmon);
         assertFalse(fishManager.getFishData(salmon).isBreedingReady());
+    }
+
+    @Test
+    @DisplayName("trackFish registers a mapped fish but ignores non-mapped entities")
+    void trackFishOnlyTracksMappedTypes() {
+        fishManager.trackFish(new SimpleEntityMock(server)); // type UNKNOWN -> ignored
+        assertTrue(fishManager.getTrackedFish().isEmpty());
+
+        Entity salmon = world.spawnEntity(new Location(world, 0, 64, 0), EntityType.SALMON);
+        fishManager.removeFishData(salmon); // ignore any spawn-event tracking
+        fishManager.trackFish(salmon);
+        assertEquals(1, fishManager.getTrackedFish().size());
+    }
+
+    @Test
+    @DisplayName("trackExistingFish picks up mapped fish already present in loaded worlds")
+    void trackExistingFishScansLoadedWorlds() {
+        world.spawnEntity(new Location(world, 0, 64, 0), EntityType.SALMON);
+        world.spawnEntity(new Location(world, 5, 64, 0), EntityType.COD);
+
+        fishManager.trackExistingFish();
+
+        assertEquals(2, fishManager.getTrackedFish().size());
     }
 }

@@ -35,6 +35,10 @@ public class FishMatingPlugin extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new ItemDropListener(this), this);
             getServer().getPluginManager().registerEvents(new EntityListener(this), this);
 
+            // Pick up fish that already exist in loaded worlds (e.g. after a reload).
+            // Ongoing discovery is event-driven via the listeners above.
+            this.fishManager.trackExistingFish();
+
             getLogger().info("FishMating plugin has been enabled successfully!");
             getLogger().info("Version: " + getDescription().getVersion());
             getLogger().info("Author: " + getDescription().getAuthors().get(0));

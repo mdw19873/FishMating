@@ -2,6 +2,7 @@ package com.mrsuffix.fishmating.listeners;
 
 import com.mrsuffix.fishmating.FishMatingPlugin;
 import com.mrsuffix.fishmating.managers.FishManager;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
@@ -9,17 +10,21 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.world.EntitiesLoadEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.ServerMock;
+import org.mockbukkit.mockbukkit.entity.SimpleEntityMock;
 import org.mockbukkit.mockbukkit.world.WorldMock;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration test for {@link EntityListener}: when a tracked fish dies, its
@@ -58,5 +63,39 @@ class EntityListenerTest {
 
         // The old (breeding-ready) entry is gone; a fresh, not-ready instance is returned.
         assertFalse(fishManager.getFishData(salmon).isBreedingReady());
+    }
+
+    @Test
+    @DisplayName("A spawning fish of a mapped type is tracked")
+    void spawnTracksMappedFish() {
+        Entity salmon = world.spawnEntity(new Location(world, 0, 64, 0), EntityType.SALMON);
+        fishManager.removeFishData(salmon); // baseline: untracked
+
+        server.getPluginManager().callEvent(new org.bukkit.event.entity.EntitySpawnEvent(salmon));
+
+        assertEquals(1, fishManager.getTrackedFish().size());
+    }
+
+    @Test
+    @DisplayName("A chunk's entities loading tracks the mapped fish among them")
+    void entitiesLoadTracksMappedFish() {
+        Entity salmon = world.spawnEntity(new Location(world, 0, 64, 0), EntityType.SALMON);
+        fishManager.removeFishData(salmon); // baseline: untracked
+        Chunk chunk = world.getChunkAt(salmon.getLocation());
+
+        server.getPluginManager().callEvent(new EntitiesLoadEvent(chunk, List.of(salmon)));
+
+        assertEquals(1, fishManager.getTrackedFish().size());
+    }
+
+    @Test
+    @DisplayName("Entities-load ignores entities that are not mapped fish")
+    void entitiesLoadIgnoresNonFish() {
+        Chunk chunk = world.getChunkAt(new Location(world, 0, 64, 0));
+        Entity notAFish = new SimpleEntityMock(server); // type UNKNOWN
+
+        server.getPluginManager().callEvent(new EntitiesLoadEvent(chunk, List.of(notAFish)));
+
+        assertTrue(fishManager.getTrackedFish().isEmpty());
     }
 }

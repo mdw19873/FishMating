@@ -6,12 +6,15 @@ import com.mrsuffix.fishmating.utils.ParticleUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -138,17 +141,27 @@ public class FishManager {
      * @return The nearest seed item, or null if none found
      */
     private Item findNearestSeed(Location location, Material seedType, double radius) {
-        return location.getWorld().getNearbyEntities(location, radius, radius, radius)
-                .stream()
-                .filter(entity -> entity instanceof Item)
-                .map(entity -> (Item) entity)
-                .filter(item -> item.getItemStack().getType() == seedType)
-                .filter(item -> isInWater(item.getLocation()))
-                .min((item1, item2) -> Double.compare(
-                        location.distance(item1.getLocation()),
-                        location.distance(item2.getLocation())
-                ))
-                .orElse(null);
+        // Filter to items during the AABB scan, then compare squared distances to
+        // avoid the per-candidate sqrt of Location#distance.
+        Item nearest = null;
+        double nearestDistanceSq = Double.MAX_VALUE;
+
+        for (Entity entity : location.getWorld()
+                .getNearbyEntities(location, radius, radius, radius, e -> e instanceof Item)) {
+            Item item = (Item) entity;
+            if (item.getItemStack().getType() != seedType) {
+                continue;
+            }
+            if (!isInWater(item.getLocation())) {
+                continue;
+            }
+            double distanceSq = location.distanceSquared(item.getLocation());
+            if (distanceSq < nearestDistanceSq) {
+                nearestDistanceSq = distanceSq;
+                nearest = item;
+            }
+        }
+        return nearest;
     }
 
     /**
@@ -203,7 +216,7 @@ public class FishManager {
                 ParticleUtils.showConsumptionParticles(fishData.getEntity().getLocation());
             }
 
-            plugin.getLogger().fine("Fish consumed seed and is now breeding ready");
+            plugin.getLogger().fine(() -> "Fish consumed seed and is now breeding ready");
 
         } catch (Exception e) {
             plugin.getLogger().warning("Error during seed consumption: " + e.getMessage());
@@ -235,6 +248,40 @@ public class FishManager {
      */
     public void removeFishData(Entity fish) {
         fishDataMap.remove(fish.getUniqueId());
+    }
+
+    /**
+     * Begins tracking an entity if its type has a configured seed mapping. Safe to
+     * call repeatedly (tracking is keyed by UUID) and for non-fish entities (ignored).
+     * This is the event-driven entry point used by spawn / chunk-load handlers.
+     * @param entity The entity to consider tracking
+     */
+    public void trackFish(Entity entity) {
+        if (plugin.getConfigManager().getSeedForFish(entity.getType()) != null) {
+            fishDataMap.computeIfAbsent(entity.getUniqueId(), uuid -> new FishData(entity));
+        }
+    }
+
+    /**
+     * One-time scan of already-loaded worlds for mapped fish, tracking each. Intended
+     * to run on enable so fish that existed before the plugin started (e.g. after a
+     * reload, or in already-loaded chunks) are picked up without per-tick polling.
+     */
+    public void trackExistingFish() {
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                trackFish(entity);
+            }
+        }
+    }
+
+    /**
+     * Returns a snapshot of all currently tracked fish. Iterating the snapshot is
+     * safe against concurrent map changes.
+     * @return A copy of the tracked fish data
+     */
+    public Collection<FishData> getTrackedFish() {
+        return new ArrayList<>(fishDataMap.values());
     }
 
     /**

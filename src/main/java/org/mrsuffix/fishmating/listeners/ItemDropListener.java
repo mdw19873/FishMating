@@ -33,7 +33,7 @@ public class ItemDropListener implements Listener {
             if (plugin.getConfigManager().isBreedingSeed(itemType)) {
                 // Check if item is in water
                 if (isInWater(item)) {
-                    plugin.getLogger().fine("Breeding seed dropped in water: " + itemType);
+                    plugin.getLogger().fine(() -> "Breeding seed dropped in water: " + itemType);
                     // The FishManager will handle fish attraction in its update cycle
                 }
             }

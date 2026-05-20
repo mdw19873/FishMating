@@ -6,13 +6,16 @@ import com.mrsuffix.fishmating.models.FishData;
 import com.mrsuffix.fishmating.utils.ParticleUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
 
@@ -46,35 +49,38 @@ public class BreedingManager {
     }
 
     /**
-     * Checks for breeding opportunities among all breeding-ready fish
-     */
-    /**
-     * Checks for breeding opportunities among all breeding-ready fish
+     * Checks for breeding opportunities among the tracked breeding-ready fish.
+     *
+     * <p>Rather than scan every entity in every world, this iterates the fish already
+     * tracked by {@link FishManager} (populated via spawn / chunk-load events) and
+     * buckets the breeding-ready, unpaired ones by world and type. Pairing is then
+     * attempted only within each single-world, single-type bucket.
      */
     private void checkForBreedingOpportunities() {
         ConfigManager config = plugin.getConfigManager();
-        FishManager fishManager = plugin.getFishManager();
 
         try {
-            // Get all breeding-ready fish grouped by type
-            for (EntityType fishType : config.getFishSeedMappings().keySet()) {
-                List<FishData> breedingReadyFish = new ArrayList<>();
+            Map<World, Map<EntityType, List<FishData>>> candidates = new HashMap<>();
 
-                // Collect all breeding-ready fish of this type from all worlds
-                for (org.bukkit.World world : Bukkit.getWorlds()) {
-                    for (Entity entity : world.getEntities()) {
-                        if (entity.getType() == fishType && entity.isValid() && !entity.isDead()) {
-                            FishData fishData = fishManager.getFishData(entity);
-                            if (fishData.isBreedingReady() && !isInBreedingPair(entity)) {
-                                breedingReadyFish.add(fishData);
-                            }
-                        }
-                    }
+            for (FishData fishData : plugin.getFishManager().getTrackedFish()) {
+                if (!fishData.isBreedingReady()) {
+                    continue;
                 }
+                Entity entity = fishData.getEntity();
+                if (!entity.isValid() || entity.isDead() || isInBreedingPair(entity)) {
+                    continue;
+                }
+                candidates
+                        .computeIfAbsent(entity.getWorld(), w -> new HashMap<>())
+                        .computeIfAbsent(entity.getType(), t -> new ArrayList<>())
+                        .add(fishData);
+            }
 
-                // Check for breeding pairs
-                if (breedingReadyFish.size() >= 2) {
-                    checkBreedingPairs(breedingReadyFish, config);
+            for (Map<EntityType, List<FishData>> byType : candidates.values()) {
+                for (List<FishData> sameWorldSameType : byType.values()) {
+                    if (sameWorldSameType.size() >= 2) {
+                        checkBreedingPairs(sameWorldSameType, config);
+                    }
                 }
             }
         } catch (Exception e) {
