@@ -1,0 +1,16 @@
+# Normalize line endings; Git decides text vs binary automatically
+* text=auto
+
+# Source and config files always LF
+*.java   text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.xml    text eol=lf
+*.md     text eol=lf
+*.gitattributes text eol=lf
+*.gitignore     text eol=lf
+
+# Binary assets
+*.jar  binary
+*.png  binary
+*.zip  binary
