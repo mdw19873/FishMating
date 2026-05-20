@@ -58,12 +58,19 @@ fish-mappings:
 
 advanced:
   debug-logging: false
+  # Upper bound on how many fish are tracked at once (see note below)
   max-tracked-fish: 1000
   natural-growth: true
   breeding-success-rate: 1.0
 ````
 
 Everything from detection range to particle effects and breeding logic can be tweaked! 🎛️
+
+> **`max-tracked-fish`** caps how many fish the plugin tracks simultaneously. Fish are
+> tracked as they spawn or their chunks load; once the cap is reached, additional fish
+> are simply not tracked (they won't seek seeds or breed) until tracked fish are freed —
+> e.g. when they die or their chunk unloads. This bounds memory and CPU on busy servers.
+> Raise it for large aquatic servers, or lower it to be more conservative.
 
 ---
 
