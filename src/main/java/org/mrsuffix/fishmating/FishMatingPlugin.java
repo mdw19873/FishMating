@@ -12,7 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  *
  * @author mrsuffix
  * @version 1.0.0
- * @since 1.21.3
+ * @since 1.21.11
  */
 public class FishMatingPlugin extends JavaPlugin {
 
