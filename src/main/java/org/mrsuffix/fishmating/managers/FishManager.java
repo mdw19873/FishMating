@@ -7,16 +7,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Manages fish behavior, movement, and seed interaction
@@ -162,8 +160,15 @@ public class FishManager {
         Location fishLoc = fish.getLocation();
         Location seedLoc = seed.getLocation();
 
-        Vector direction = seedLoc.toVector().subtract(fishLoc.toVector()).normalize();
-        Vector velocity = direction.multiply(0.3); // Moderate speed
+        Vector direction = seedLoc.toVector().subtract(fishLoc.toVector());
+
+        // Fish is essentially on the seed: normalizing a zero vector yields NaN, so
+        // skip applying velocity (the consume check will pick it up this tick).
+        if (direction.lengthSquared() < 1.0E-6) {
+            return;
+        }
+
+        Vector velocity = direction.normalize().multiply(0.3); // Moderate speed
 
         // Ensure fish stays in water
         velocity.setY(Math.max(velocity.getY(), -0.1));
@@ -178,10 +183,13 @@ public class FishManager {
      */
     private void consumeSeed(FishData fishData, Item seedItem) {
         try {
-            // Reduce seed stack size
-            int currentAmount = seedItem.getItemStack().getAmount();
+            // Reduce seed stack size. Item.getItemStack() returns a copy, so the
+            // modified stack must be written back with setItemStack().
+            ItemStack stack = seedItem.getItemStack();
+            int currentAmount = stack.getAmount();
             if (currentAmount > 1) {
-                seedItem.getItemStack().setAmount(currentAmount - 1);
+                stack.setAmount(currentAmount - 1);
+                seedItem.setItemStack(stack);
             } else {
                 seedItem.remove();
             }
@@ -227,21 +235,6 @@ public class FishManager {
      */
     public void removeFishData(Entity fish) {
         fishDataMap.remove(fish.getUniqueId());
-    }
-
-    /**
-     * Gets all breeding-ready fish of a specific type within radius of a location
-     * @param location The center location
-     * @param fishType The fish type
-     * @param radius The search radius
-     * @return List of breeding-ready fish
-     */
-    public List<FishData> getBreedingReadyFish(Location location, EntityType fishType, double radius) {
-        return fishDataMap.values().stream()
-                .filter(fishData -> fishData.getEntity().getType() == fishType)
-                .filter(FishData::isBreedingReady)
-                .filter(fishData -> fishData.getEntity().getLocation().distance(location) <= radius)
-                .collect(Collectors.toList());
     }
 
     /**
