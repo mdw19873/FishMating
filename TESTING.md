@@ -3,6 +3,9 @@
 This document describes the test framework, methodology, and conventions for the
 FishMating plugin.
 
+The suite currently has **45 tests** across 8 classes, covering **~84% of lines**
+(~73% of branches). See [Coverage](#coverage) for the live report.
+
 ## Toolchain
 
 | Tool | Version | Purpose |
@@ -38,18 +41,45 @@ real `SimpleEntityMock`. Time-based logic is asserted with **boundary values**
 deterministic — never assert on wall-clock delays.
 
 ### 2. Integration tests
-Boot the real plugin on an in-memory MockBukkit server to verify wiring and
-configuration end to end:
+Boot the real plugin on an in-memory MockBukkit server to verify wiring, behaviour,
+and configuration end to end:
 - `FishMatingPluginTest` — `onEnable()` constructs all managers, registers listeners,
   and schedules the periodic tasks.
 - `managers/ConfigManagerTest` — the bundled `config.yml` is parsed into the expected
   settings and fish→seed mappings.
+- `managers/FishManagerTest` — seed seeking/consumption, stack handling, fish-data
+  lifecycle, and fish tracking.
+- `managers/BreedingManagerTest` — pairing rules (range, same world, no double-pairing).
+- `listeners/EntityListenerTest` — event-driven tracking and death cleanup.
+- `utils/ParticleUtilsTest` — the exact particle types each effect emits.
 
 The MockBukkit lifecycle is:
 ```java
 @BeforeEach void setUp()   { server = MockBukkit.mock(); plugin = MockBukkit.load(FishMatingPlugin.class); }
 @AfterEach  void tearDown(){ MockBukkit.unmock(); }
 ```
+
+**Driving the scheduler.** The managers do their work in repeating tasks
+(`runTaskTimer`), which first fire at tick 20. Advance them deterministically with
+`server.getScheduler().performTicks(20L)` rather than sleeping. MockBukkit does not
+simulate physics, so a fish only "reaches" a seed when spawned within consume range.
+
+**Exercising event-driven tracking.** Fish discovery is event-driven (see below), so
+tests fire the real events through the plugin manager instead of relying on internal
+calls:
+```java
+server.getPluginManager().callEvent(new EntitySpawnEvent(fish));          // spawn
+server.getPluginManager().callEvent(new EntitiesLoadEvent(chunk, fish));  // chunk load
+server.getPluginManager().callEvent(new EntityDeathEvent(fish, source, drops)); // death
+```
+
+> **How fish are tracked (and why it matters for tests).** `FishManager` keeps a map
+> of tracked fish that is populated *by events*, not by polling: `EntityListener`
+> registers fish on `EntitySpawnEvent` and `EntitiesLoadEvent`, `onEnable` runs a
+> one-time `trackExistingFish()` scan, and dead/invalid fish are pruned each update
+> cycle. `BreedingManager` then iterates only this tracked set. Tests must therefore
+> ensure a fish is tracked (via a spawn/load event, or `FishManager#trackFish`) before
+> expecting the managers to act on it.
 
 ## Conventions
 
