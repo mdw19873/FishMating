@@ -43,7 +43,7 @@ Here’s an example `config.yml` with full customization options:
 ```yaml
 # FishMating Plugin Configuration
 # Author: mrsuffix
-# Version: 1.0.0
+# Version: 1.1.0
 
 settings:
   detection-radius: 5.0
@@ -127,6 +127,10 @@ mvn verify   # compile, run the test suite, and package the plugin jar
 The project has an automated test suite (JUnit 6 + MockBukkit) with JaCoCo coverage
 reporting, and CI builds/tests on **Java 21 and 25**. See **[TESTING.md](./TESTING.md)**
 for the full testing methodology and conventions.
+
+Releases follow [Semantic Versioning](https://semver.org/); see
+**[RELEASING.md](./RELEASING.md)** for the release process and
+**[CHANGELOG.md](./CHANGELOG.md)** for the version history.
 
 ---
 

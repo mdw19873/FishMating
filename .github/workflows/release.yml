@@ -1,0 +1,111 @@
+name: Release
+
+# Pom-driven releases: bump the version in pom.xml, update CHANGELOG.md, commit,
+# then push a matching tag `vX.Y.Z`. This workflow verifies the tag matches the pom
+# version, builds and tests, then publishes a GitHub Release with the jar, its
+# SHA-256 checksum, and a build-provenance attestation.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# Least privilege: write access to create the release + the tokens needed to
+# produce a build-provenance attestation.
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Resolve project version
+        id: version
+        run: |
+          VERSION="$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Project version: $VERSION"
+
+      - name: Verify tag matches project version
+        if: github.ref_type == 'tag'
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$TAG_VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Tag '${GITHUB_REF_NAME}' does not match pom version '${{ steps.version.outputs.version }}'. Bump pom.xml or fix the tag."
+            exit 1
+          fi
+
+      - name: Build and test
+        run: mvn -B --no-transfer-progress clean verify
+
+      - name: Compute checksum
+        id: artifact
+        run: |
+          JAR="target/fishmating-${{ steps.version.outputs.version }}.jar"
+          if [ ! -f "$JAR" ]; then
+            echo "::error::Expected artifact '$JAR' was not produced"; exit 1
+          fi
+          sha256sum "$JAR" > "$JAR.sha256"
+          echo "jar=$JAR" >> "$GITHUB_OUTPUT"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: ${{ steps.artifact.outputs.jar }}
+
+      - name: Extract release notes from CHANGELOG
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "Release $VERSION" > release-notes.md
+          fi
+
+      - name: Determine tag and prerelease flag
+        id: meta
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+          # A SemVer pre-release has a hyphen (e.g. 1.2.0-rc.1).
+          case "$VERSION" in
+            *-*) echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "prerelease=" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.meta.outputs.tag }}" \
+            "${{ steps.artifact.outputs.jar }}" \
+            "${{ steps.artifact.outputs.jar }}.sha256" \
+            --title "FishMating ${{ steps.version.outputs.version }}" \
+            --notes-file release-notes.md \
+            ${{ steps.meta.outputs.prerelease }}

@@ -1,5 +1,5 @@
 name: FishMating
-version: 1.0.0
+version: '${project.version}'
 main: com.mrsuffix.fishmating.FishMatingPlugin
 author: mrsuffix
 description: A plugin that simulates fish breeding triggered by throwing seeds into water

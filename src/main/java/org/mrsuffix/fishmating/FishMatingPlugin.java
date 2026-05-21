@@ -15,8 +15,8 @@ import java.util.logging.Level;
  * FishMating Plugin - Simulates fish breeding triggered by throwing seeds into water
  *
  * @author mrsuffix
- * @version 1.0.0
- * @since 1.21.11
+ * @version 1.1.0
+ * @since 1.21
  */
 public class FishMatingPlugin extends JavaPlugin {
 
