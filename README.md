@@ -149,6 +149,10 @@ Developed with ❤️ by **mrsuffix**
 
 > GitHub: [mrsuffix](https://github.com/mrsuffixx)
 
+### 🤝 Contributors
+
+- **MDW** — contributor · GitHub: [mdw19873](https://github.com/mdw19873)
+
 ---
 
 ## ⭐ Support the Project!
