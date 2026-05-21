@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/fishmating reload` (alias `/fm`) admin command, gated by the `fishmating.admin`
   permission, to reload `config.yml` without a restart.
 - Enforcement of `advanced.max-tracked-fish` to bound how many fish are tracked.
-- Bred tropical fish inherit a parent's pattern and colours.
+- Bred tropical fish inherit a parent's pattern and colors.
 
 ### Changed
 - `api-version` is `1.21`, so the plugin loads on any 1.21.x server as well as 26.1.
