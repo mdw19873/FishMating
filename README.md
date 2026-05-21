@@ -7,7 +7,7 @@
 
 ## 📦 Overview
 
-**FishMating** is a feature-rich and highly configurable Minecraft plugin designed for **1.21.11**. Crafted with ❤️ by `mrsuffix`, this plugin brings your aquatic biomes to life by introducing a unique, seed-based fish breeding mechanic.
+**FishMating** is a feature-rich and highly configurable Minecraft plugin supporting **Minecraft 1.21.x through 26.1**. Crafted with ❤️ by `mrsuffix`, this plugin brings your aquatic biomes to life by introducing a unique, seed-based fish breeding mechanic.
 
 Throw seeds into water to attract nearby fish! Fish will detect matching seeds within a **5-block radius**, swim toward them, and become *breeding-ready* after consuming a seed. If two ready fish find each other within **30 seconds**, they breed and spawn a cute baby fish 🐣. After breeding, fish wait **3 minutes** before breeding again.
 
@@ -17,7 +17,7 @@ Every detail can be customized in the `config.yml` — from detection radius to 
 
 ## ✨ Features
 
-✅ Works with Minecraft **1.21.11**  
+✅ Works with Minecraft **1.21.x through 26.1**  
 ✅ Attract fish by throwing seeds into water 🌱  
 ✅ Fully configurable detection radius, cooldowns, particles, and more  
 ✅ Heart particles show breeding readiness ❤️  
@@ -118,7 +118,9 @@ Well-documented and clean to help new developers understand and contribute! 🧰
 
 ## 🧪 Building & Testing
 
-Built with Maven against **Java 21** and `paper-api` for **1.21.11**.
+Built with Maven against **Java 21** and `paper-api` 1.21.11. The plugin uses only
+stable API, so one jar runs on **Minecraft 1.21.x through 26.1**; CI compile-guards
+verify it against both the 1.21 floor and the 26.1 ceiling (26.1 servers run Java 25).
 
 ```bash
 mvn verify   # compile, run the test suite, and package the plugin jar

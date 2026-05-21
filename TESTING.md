@@ -117,3 +117,8 @@ Once coverage stabilises, a ratcheting minimum can be enforced by adding a
 `.github/workflows/build.yml` runs `mvn clean verify` on a JDK **21** and **25**
 matrix for every push and pull request to `main`, then uploads the plugin jar and the
 JaCoCo report as build artifacts.
+
+It also runs **API compatibility guards** that compile the main sources against the
+**1.21 floor** (`-Ppaper-floor`, JDK 21) and the **26.1 ceiling** (`-Ppaper-26`,
+JDK 25). These compile-only checks fail fast if a symbol we use was added after 1.21.0
+or removed by 26.1, keeping the single jar valid across the whole supported range.

@@ -19,6 +19,11 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <!-- Server API. Default targets the lowest supported version (1.21.11) so a
+             single jar runs on 1.21.11 and newer (incl. 26.1). The `paper-26` profile
+             overrides this to compile-check against the 26.1 API. -->
+        <paper.api.version>1.21.11-R0.1-SNAPSHOT</paper.api.version>
+
         <!-- Test toolchain versions -->
         <junit.version>6.1.0</junit.version>
         <mockbukkit.version>4.110.0</mockbukkit.version>
@@ -73,7 +78,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21.11-R0.1-SNAPSHOT</version>
+            <version>${paper.api.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -113,7 +118,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <release>21</release>
+                    <release>${maven.compiler.release}</release>
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
                         <arg>-Xlint:unchecked</arg>
@@ -171,4 +176,29 @@
             </resource>
         </resources>
     </build>
+
+    <!--
+      Compatibility guards. The shipped jar is built against 1.21.11 (default), but the
+      plugin declares support for all 1.21.x through 26.1. These profiles compile the
+      main sources against the floor and ceiling APIs in CI so any drift (a symbol we
+      use being added after 1.21.0, or removed by 26.1) fails the build early. They are
+      compile-only checks and do not produce the released artifact.
+    -->
+    <profiles>
+        <!-- Floor: oldest supported API (1.21.0). Runs on Java 21. -->
+        <profile>
+            <id>paper-floor</id>
+            <properties>
+                <paper.api.version>1.21-R0.1-SNAPSHOT</paper.api.version>
+            </properties>
+        </profile>
+        <!-- Ceiling: the 26.1 API, which is compiled for Java 25. -->
+        <profile>
+            <id>paper-26</id>
+            <properties>
+                <paper.api.version>26.1.2.build.64-stable</paper.api.version>
+                <maven.compiler.release>25</maven.compiler.release>
+            </properties>
+        </profile>
+    </profiles>
 </project>
