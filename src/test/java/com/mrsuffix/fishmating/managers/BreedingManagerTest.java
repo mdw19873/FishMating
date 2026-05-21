@@ -1,9 +1,11 @@
 package com.mrsuffix.fishmating.managers;
 
 import com.mrsuffix.fishmating.FishMatingPlugin;
+import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.TropicalFish;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +15,7 @@ import org.mockbukkit.mockbukkit.ServerMock;
 import org.mockbukkit.mockbukkit.world.WorldMock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Integration tests for {@link BreedingManager}'s pairing logic, driven by ticking
@@ -116,5 +119,45 @@ class BreedingManagerTest {
         runBreedingCheck();
 
         assertEquals(2, breedingManager.getActiveBreedingPairCount());
+    }
+
+    @Test
+    @DisplayName("A bred tropical fish baby inherits a parent's variant")
+    void tropicalFishBabyInheritsParentVariant() {
+        WorldMock world = server.addSimpleWorld("w");
+        TropicalFish p1 = spawnReadyTropicalFish(world, 0, 0);
+        TropicalFish p2 = spawnReadyTropicalFish(world, 2, 0);
+
+        // Both parents share one distinctive variant so inheritance is deterministic
+        // regardless of which parent is chosen as the source.
+        for (TropicalFish parent : new TropicalFish[]{p1, p2}) {
+            parent.setPattern(TropicalFish.Pattern.BETTY);
+            parent.setBodyColor(DyeColor.RED);
+            parent.setPatternColor(DyeColor.BLUE);
+        }
+
+        // Breeding check fires at tick 20 and schedules the baby 40 ticks later.
+        server.getScheduler().performTicks(60L);
+
+        TropicalFish baby = findBaby(world, p1, p2);
+        assertNotNull(baby, "expected a baby tropical fish to spawn");
+        assertEquals(TropicalFish.Pattern.BETTY, baby.getPattern());
+        assertEquals(DyeColor.RED, baby.getBodyColor());
+        assertEquals(DyeColor.BLUE, baby.getPatternColor());
+    }
+
+    private TropicalFish spawnReadyTropicalFish(WorldMock world, double x, double z) {
+        TropicalFish fish = (TropicalFish) world.spawnEntity(
+                new Location(world, x, 64, z), EntityType.TROPICAL_FISH);
+        plugin.getFishManager().getFishData(fish).setBreedingReady(true);
+        return fish;
+    }
+
+    private TropicalFish findBaby(WorldMock world, Entity parent1, Entity parent2) {
+        return world.getEntitiesByClass(TropicalFish.class).stream()
+                .filter(f -> !f.getUniqueId().equals(parent1.getUniqueId()))
+                .filter(f -> !f.getUniqueId().equals(parent2.getUniqueId()))
+                .findFirst()
+                .orElse(null);
     }
 }

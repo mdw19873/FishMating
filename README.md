@@ -27,6 +27,8 @@ Every detail can be customized in the `config.yml` — from detection radius to 
 - Pufferfish 🐡 ← *Melon Seeds* 🍉  
 - Tropical Fish 🐠 ← *Beetroot Seeds* 🥬  
 
+✅ Bred tropical fish inherit a parent's pattern & colors 🎨  
+
 ✅ Advanced controls: debug logging, max tracked fish, breeding success chance  
 ✅ Clean, modern multi-class code structure and JavaDocs 🛠️  
 ✅ Compatible with other popular plugins  

@@ -9,6 +9,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.TropicalFish;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.Set;
 
 /**
@@ -178,6 +180,9 @@ public class BreedingManager {
             // Spawn baby fish
             Entity baby = parent1.getWorld().spawnEntity(spawnLocation, parent1.getType());
 
+            // Inherit appearance for species with visual variants (e.g. tropical fish).
+            inheritAppearance(baby, parent1, parent2);
+
             // Set baby properties if supported
             if (baby instanceof org.bukkit.entity.Ageable) {
                 ((org.bukkit.entity.Ageable) baby).setBaby();
@@ -188,10 +193,34 @@ public class BreedingManager {
                 ParticleUtils.showBirthParticles(spawnLocation);
             }
 
-            plugin.getLogger().fine("Baby fish spawned at " + spawnLocation);
+            plugin.getLogger().fine(() -> "Baby fish spawned at " + spawnLocation);
 
         } catch (Exception e) {
             plugin.getLogger().warning("Error spawning baby fish: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Copies visual variant data from one randomly chosen parent onto the baby, for
+     * species that have appearance variants. Tropical fish are the only mapped species
+     * with variants — a pattern plus body and pattern colours; without this the server
+     * would assign the baby a random, unrelated variant. Other fish have no variant
+     * and are left unchanged.
+     *
+     * @param baby The newly spawned baby entity
+     * @param parent1 The first parent
+     * @param parent2 The second parent
+     */
+    private void inheritAppearance(Entity baby, Entity parent1, Entity parent2) {
+        if (baby instanceof TropicalFish babyFish
+                && parent1 instanceof TropicalFish firstParent
+                && parent2 instanceof TropicalFish secondParent) {
+            // Offspring take one parent's full variant at random, matching Minecraft's
+            // convention for variant inheritance (vanilla tropical fish do not breed).
+            TropicalFish source = ThreadLocalRandom.current().nextBoolean() ? firstParent : secondParent;
+            babyFish.setPattern(source.getPattern());
+            babyFish.setBodyColor(source.getBodyColor());
+            babyFish.setPatternColor(source.getPatternColor());
         }
     }
 
