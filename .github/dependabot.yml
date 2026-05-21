@@ -1,0 +1,44 @@
+version: 2
+updates:
+  # Maven dependencies and build plugins (pom.xml)
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: build
+    # Bundle routine minor/patch bumps into a single PR to cut review noise;
+    # major upgrades still open individually so they get deliberate attention.
+    groups:
+      maven-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # The server API is pinned deliberately for Minecraft compatibility; the
+      # supported range (1.21.x–26.1) is managed by hand and verified by the CI
+      # compile-guards (see RELEASING.md), not by automated bumps.
+      - dependency-name: "io.papermc.paper:paper-api"
+      # Adventure is aligned to the version paper-api ships; it should be bumped
+      # together with paper-api, not independently.
+      - dependency-name: "net.kyori:adventure*"
+
+  # GitHub Actions used by the workflows (.github/workflows/*)
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+    groups:
+      github-actions:
+        patterns:
+          - "*"
