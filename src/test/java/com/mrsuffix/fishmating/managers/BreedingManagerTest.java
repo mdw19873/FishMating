@@ -212,6 +212,24 @@ class BreedingManagerTest {
         assertEquals(0, breedingManager.getActiveBreedingPairCount());
     }
 
+    @Test
+    @DisplayName("With WorldGuard integration on but WorldGuard absent, breeding still occurs")
+    void worldGuardIntegrationNoOpsWhenWorldGuardAbsent() {
+        // MockBukkit has no WorldGuard, so getPlugin("WorldGuard") is null and the gate is
+        // skipped entirely — the feature must be a clean no-op rather than block breeding.
+        plugin.getConfig().set("advanced.worldguard-integration", true);
+        plugin.saveConfig();
+        plugin.getConfigManager().loadConfiguration();
+
+        WorldMock world = server.addSimpleWorld("w");
+        spawnReadySalmon(world, 0, 0);
+        spawnReadySalmon(world, 2, 0);
+
+        runBreedingCheck();
+
+        assertEquals(1, breedingManager.getActiveBreedingPairCount());
+    }
+
     private Entity findBabySalmon(WorldMock world, Entity parent1, Entity parent2) {
         return world.getEntitiesByClass(org.bukkit.entity.Salmon.class).stream()
                 .map(f -> (Entity) f)

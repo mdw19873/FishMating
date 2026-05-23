@@ -77,6 +77,8 @@ advanced:
   require-player-thrown-seeds: true
   # Require a player within N blocks for fish to seek/breed; 0 disables
   require-player-within: 0
+  # Respect the WorldGuard "allow-fish-breeding" region flag (needs WorldGuard)
+  worldguard-integration: false
 ````
 
 Everything from detection range to particle effects and breeding logic can be tweaked! 🎛️
@@ -99,6 +101,14 @@ Everything from detection range to particle effects and breeding logic can be tw
 > **`require-player-within`** (default **0**, disabled) requires a non-spectator player
 > within the given block radius for fish to seek seeds or breed. Set a radius (e.g. `32`)
 > to stop unattended / chunk-loader farms from running while no one is around.
+
+> **`worldguard-integration`** (default **false**) turns on optional [WorldGuard](https://dev.bukkit.org/projects/worldguard)
+> support. When enabled (and WorldGuard is installed), breeding obeys the custom
+> `allow-fish-breeding` region flag: fish won't produce offspring in regions where it's set
+> to `DENY`. The flag defaults to `ALLOW`, so breeding works everywhere unless a region
+> opts out — e.g. `/rg flag <region> allow-fish-breeding deny`. The flag is registered
+> automatically whenever WorldGuard is present; this option only controls enforcement, and
+> it has no effect when WorldGuard isn't installed.
 
 ---
 

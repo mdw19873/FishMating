@@ -32,6 +32,7 @@ public class ConfigManager {
     private int growthDurationMinutes;
     private boolean requirePlayerThrownSeeds;
     private double requirePlayerWithin;
+    private boolean worldGuardIntegration;
 
     /** Hard ceiling on breeding XP so it can never exceed vanilla mob breeding (1-7). */
     private static final int MAX_BREEDING_EXPERIENCE = 7;
@@ -85,6 +86,10 @@ public class ConfigManager {
             // Require a player within this many blocks for fish to seek seeds or breed;
             // 0 (or negative) disables the check. Blocks unattended/chunk-loader farms.
             requirePlayerWithin = Math.max(0.0, plugin.getConfig().getDouble("advanced.require-player-within", 0.0));
+
+            // When on (and WorldGuard is installed), respect the "allow-fish-breeding" region
+            // flag: breeding is denied where a region sets it to DENY. Off by default.
+            worldGuardIntegration = plugin.getConfig().getBoolean("advanced.worldguard-integration", false);
 
             // Load fish-seed mappings
             fishSeedMappings.clear();
@@ -171,5 +176,7 @@ public class ConfigManager {
     public boolean isRequirePlayerThrownSeeds() { return requirePlayerThrownSeeds; }
     /** @return radius (blocks) a player must be within for fish to seek/breed; 0 disables. */
     public double getRequirePlayerWithin() { return requirePlayerWithin; }
+    /** @return whether to respect the WorldGuard "allow-fish-breeding" region flag. */
+    public boolean isWorldGuardIntegration() { return worldGuardIntegration; }
     public Map<EntityType, Material> getFishSeedMappings() { return new HashMap<>(fishSeedMappings); }
 }

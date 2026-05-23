@@ -56,3 +56,8 @@ advanced:
   # Require a player within this many blocks for fish to seek seeds or breed. Blocks
   # unattended/chunk-loader farms. 0 disables the check (no presence required).
   require-player-within: 0
+
+  # Respect the WorldGuard region flag "allow-fish-breeding". Breeding is allowed
+  # everywhere unless a region sets the flag to DENY. Requires WorldGuard installed;
+  # ignored otherwise.
+  worldguard-integration: false

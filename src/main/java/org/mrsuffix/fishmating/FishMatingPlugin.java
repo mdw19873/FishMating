@@ -3,6 +3,7 @@ package com.mrsuffix.fishmating;
 import com.mrsuffix.fishmating.commands.FishMatingCommand;
 import com.mrsuffix.fishmating.listeners.EntityListener;
 import com.mrsuffix.fishmating.listeners.ItemDropListener;
+import com.mrsuffix.fishmating.integrations.WorldGuardHook;
 import com.mrsuffix.fishmating.managers.BreedingManager;
 import com.mrsuffix.fishmating.managers.ConfigManager;
 import com.mrsuffix.fishmating.managers.FishManager;
@@ -24,6 +25,22 @@ public class FishMatingPlugin extends JavaPlugin {
     private ConfigManager configManager;
     private FishManager fishManager;
     private BreedingManager breedingManager;
+
+    @Override
+    public void onLoad() {
+        // Register the WorldGuard "allow-fish-breeding" flag here: WorldGuard's flag
+        // registry locks once it enables, so onEnable() would be too late. Guarded by the
+        // plugin lookup so WorldGuardHook (and its com.sk89q.* references) is only linked
+        // when WorldGuard is actually present. catch Throwable also covers NoClassDefFoundError.
+        if (getServer().getPluginManager().getPlugin("WorldGuard") != null) {
+            try {
+                WorldGuardHook.registerFlag(getLogger());
+                getLogger().info("Registered WorldGuard flag 'allow-fish-breeding'.");
+            } catch (Throwable t) {
+                getLogger().warning("WorldGuard present but flag registration failed: " + t.getMessage());
+            }
+        }
+    }
 
     @Override
     public void onEnable() {

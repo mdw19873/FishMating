@@ -26,6 +26,9 @@ updates:
       # Adventure is aligned to the version paper-api ships; it should be bumped
       # together with paper-api, not independently.
       - dependency-name: "net.kyori:adventure*"
+      # WorldGuard is an optional (provided) integration dependency from the EngineHub
+      # repo, pinned by hand and bumped deliberately alongside compatibility checks.
+      - dependency-name: "com.sk89q.worldguard:worldguard-bukkit"
 
   # GitHub Actions used by the workflows (.github/workflows/*)
   - package-ecosystem: github-actions

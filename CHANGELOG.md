@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `advanced.worldguard-integration` (default false): optional WorldGuard support. When on
+  (and WorldGuard is installed), breeding respects the custom `allow-fish-breeding` region
+  flag — fish won't produce offspring in regions where the flag is set to `DENY`. The flag
+  defaults to `ALLOW`, so breeding works everywhere unless a region opts out. The plugin
+  registers the flag whenever WorldGuard is present; the config option only controls
+  enforcement. No effect when WorldGuard isn't installed.
 
 ## [1.3.0] - 2026-05-23
 ### Added

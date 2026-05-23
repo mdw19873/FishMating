@@ -1,6 +1,7 @@
 package com.mrsuffix.fishmating.managers;
 
 import com.mrsuffix.fishmating.FishMatingPlugin;
+import com.mrsuffix.fishmating.integrations.WorldGuardHook;
 import com.mrsuffix.fishmating.models.BreedingPair;
 import com.mrsuffix.fishmating.models.FishData;
 import com.mrsuffix.fishmating.utils.ParticleUtils;
@@ -131,6 +132,16 @@ public class BreedingManager {
 
                 // Check if fish are within breeding range
                 if (fish1.getLocation().distance(fish2.getLocation()) <= radius) {
+                    // WorldGuard gate: skip this pair if a region denies breeding here. The
+                    // config check is first so the common (disabled) case short-circuits
+                    // before any plugin lookup or region query. continue (not break) lets
+                    // fish1 still pair with another candidate elsewhere.
+                    if (config.isWorldGuardIntegration()
+                            && Bukkit.getPluginManager().getPlugin("WorldGuard") != null
+                            && !WorldGuardHook.isBreedingAllowed(fish1.getLocation())) {
+                        continue;
+                    }
+
                     // Create breeding pair and initiate breeding
                     BreedingPair pair = new BreedingPair(fish1, fish2);
                     activeBreedingPairs.add(pair);
