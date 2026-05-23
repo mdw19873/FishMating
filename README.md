@@ -94,7 +94,9 @@ Everything from detection range to particle effects and breeding logic can be tw
 > **`natural-growth`** makes bred fish spawn at `baby-scale` and grow to full size over
 > `growth-duration-minutes`. A fish can't breed until it's full-grown, and growth only
 > advances while it's loaded (so it pauses when its chunk unloads and resumes afterward).
-> Set `natural-growth: false` for full-size offspring with no growth phase.
+> Just like vanilla baby animals, a not-yet-grown fish drops no loot or experience if
+> killed — so newborns can't be farmed for drops before they mature. Set
+> `natural-growth: false` for full-size offspring with no growth phase.
 
 > **`require-player-thrown-seeds`** (default **true**) makes only seeds *thrown by a
 > player* attract fish, so dispenser/dropper-fed contraptions can't run automated

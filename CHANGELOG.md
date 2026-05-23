@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- A not-yet-grown fish (one still below full size during the `natural-growth` phase) now
+  drops **no loot and no experience** when killed, matching vanilla baby animals. Because
+  the mapped fish aren't `Ageable`, a "baby" is only a shrunk-scale adult to the server, so
+  it previously dropped full loot + kill XP the instant it spawned — letting a player breed
+  fish and immediately kill the newborns to harvest drops/XP and bypass the growth-time
+  gate. Drops resume normally once the fish matures. (No effect when `natural-growth` is
+  off, since fish are never shrunk and so always count as full-grown.)
 
 ## [1.4.0] - 2026-05-23
 ### Added

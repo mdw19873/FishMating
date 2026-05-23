@@ -41,8 +41,10 @@ advanced:
 
   # Bred fish spawn small and grow to full size over time. Set false for full-size babies.
   natural-growth: true
+
   # Starting size of a bred fish, 0.1-1.0 (1.0 = full adult); used when natural-growth is on.
   baby-scale: 0.5
+
   # Minutes for a baby to grow to full size.
   growth-duration-minutes: 10
 

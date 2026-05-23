@@ -19,7 +19,10 @@ import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.ServerMock;
 import org.mockbukkit.mockbukkit.entity.SimpleEntityMock;
 import org.mockbukkit.mockbukkit.world.WorldMock;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -63,6 +66,23 @@ class EntityListenerTest {
 
         // The old (breeding-ready) entry is gone; a fresh, not-ready instance is returned.
         assertFalse(fishManager.getFishData(salmon).isBreedingReady());
+    }
+
+    @Test
+    @DisplayName("A full-grown fish keeps its drops and XP on death")
+    void adultFishDropsPreserved() {
+        // A wild/grown fish (scale 1.0 — MockBukkit reports no scale attribute, treated as
+        // adult) must drop normally; only not-yet-grown fish are suppressed. Guards against
+        // the suppression handler over-reaching and clearing legitimate adult loot.
+        Entity salmon = world.spawnEntity(new Location(world, 0, 64, 0), EntityType.SALMON);
+
+        DamageSource source = DamageSource.builder(DamageType.GENERIC).build();
+        List<ItemStack> drops = new ArrayList<>(List.of(new ItemStack(Material.SALMON)));
+        EntityDeathEvent event = new EntityDeathEvent((LivingEntity) salmon, source, drops, 3);
+        server.getPluginManager().callEvent(event);
+
+        assertEquals(1, event.getDrops().size(), "adult fish loot should be untouched");
+        assertEquals(3, event.getDroppedExp(), "adult fish XP should be untouched");
     }
 
     @Test
