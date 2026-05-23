@@ -4,6 +4,7 @@ import com.mrsuffix.fishmating.FishMatingPlugin;
 import com.mrsuffix.fishmating.models.BreedingPair;
 import com.mrsuffix.fishmating.models.FishData;
 import com.mrsuffix.fishmating.utils.ParticleUtils;
+import com.mrsuffix.fishmating.utils.ScaleUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -160,7 +161,12 @@ public class BreedingManager {
         // Schedule baby spawning after a short delay
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (pair.isValid()) {
-                spawnBabyFish(fish1, fish2);
+                // Roll against the configured success rate. A failed attempt produces no
+                // baby but still completes (clears readiness + applies cooldown), so it
+                // can't be retried instantly. Rate 1.0 always succeeds; 0.0 never does.
+                if (ThreadLocalRandom.current().nextDouble() < plugin.getConfigManager().getBreedingSuccessRate()) {
+                    spawnBabyFish(fish1, fish2);
+                }
                 completeBreeding(fish1Data, fish2Data, pair);
             }
         }, 40L); // 2 seconds delay
@@ -190,12 +196,14 @@ public class BreedingManager {
             // creates (or returns the existing) tracking record for the baby.
             plugin.getFishManager().getFishData(baby).setLastBreedingTime();
 
-            // Set baby properties if supported. The four default fish are not Ageable in
-            // current Minecraft, so this branch is inert for them today; it is kept
-            // deliberately so offspring are correctly aged-down if a future version makes
-            // these species Ageable, or if an admin maps an Ageable mob via config.
-            if (baby instanceof org.bukkit.entity.Ageable) {
-                ((org.bukkit.entity.Ageable) baby).setBaby();
+            // Make the offspring a baby. Ageable mobs (not the default fish) have a native
+            // baby stage that matures on its own. The default fish are not Ageable, so when
+            // natural growth is enabled we emulate a baby by shrinking it via the scale
+            // attribute; FishManager grows it back to full size over the configured time.
+            if (baby instanceof org.bukkit.entity.Ageable ageable) {
+                ageable.setBaby();
+            } else if (plugin.getConfigManager().isNaturalGrowth()) {
+                ScaleUtil.setScale(baby, plugin.getConfigManager().getBabyScale());
             }
 
             // Show birth particles

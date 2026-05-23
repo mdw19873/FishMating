@@ -25,6 +25,11 @@ public class ConfigManager {
     private boolean enableParticles;
     private int particleCount;
     private int maxTrackedFish;
+    private boolean debugLogging;
+    private double breedingSuccessRate;
+    private boolean naturalGrowth;
+    private double babyScale;
+    private int growthDurationMinutes;
 
     /** Hard ceiling on breeding XP so it can never exceed vanilla mob breeding (1-7). */
     private static final int MAX_BREEDING_EXPERIENCE = 7;
@@ -53,6 +58,23 @@ public class ConfigManager {
             enableParticles = plugin.getConfig().getBoolean("settings.enable-particles", true);
             particleCount = plugin.getConfig().getInt("settings.particle-count", 5);
             maxTrackedFish = plugin.getConfig().getInt("advanced.max-tracked-fish", 1000);
+
+            // Raise the plugin logger to FINE when debug logging is on so the existing
+            // logger.fine(...) diagnostics are emitted; back to INFO otherwise.
+            debugLogging = plugin.getConfig().getBoolean("advanced.debug-logging", false);
+            plugin.getLogger().setLevel(debugLogging ? Level.FINE : Level.INFO);
+
+            // Probability (0.0-1.0) that a ready pair actually produces a baby; clamped.
+            double rate = plugin.getConfig().getDouble("advanced.breeding-success-rate", 1.0);
+            breedingSuccessRate = Math.max(0.0, Math.min(1.0, rate));
+
+            // Natural growth: bred fish spawn small (baby-scale) and grow to full size
+            // over growth-duration-minutes. Scale is clamped to a sane (0.1, 1.0]; the
+            // duration is at least 1 minute.
+            naturalGrowth = plugin.getConfig().getBoolean("advanced.natural-growth", true);
+            double scale = plugin.getConfig().getDouble("advanced.baby-scale", 0.5);
+            babyScale = Math.max(0.1, Math.min(1.0, scale));
+            growthDurationMinutes = Math.max(1, plugin.getConfig().getInt("advanced.growth-duration-minutes", 5));
 
             // Load fish-seed mappings
             fishSeedMappings.clear();
@@ -126,5 +148,14 @@ public class ConfigManager {
     public boolean isParticlesEnabled() { return enableParticles; }
     public int getParticleCount() { return particleCount; }
     public int getMaxTrackedFish() { return maxTrackedFish; }
+    public boolean isDebugLogging() { return debugLogging; }
+    /** @return probability (0.0-1.0, clamped) that a ready pair produces a baby. */
+    public double getBreedingSuccessRate() { return breedingSuccessRate; }
+    /** @return whether bred fish spawn small and grow to full size over time. */
+    public boolean isNaturalGrowth() { return naturalGrowth; }
+    /** @return the scale (0.1-1.0) a freshly bred fish starts at when natural growth is on. */
+    public double getBabyScale() { return babyScale; }
+    /** @return minutes for a baby to grow from baby-scale to full size. */
+    public int getGrowthDurationMinutes() { return growthDurationMinutes; }
     public Map<EntityType, Material> getFishSeedMappings() { return new HashMap<>(fishSeedMappings); }
 }

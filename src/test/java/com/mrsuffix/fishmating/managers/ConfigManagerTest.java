@@ -69,6 +69,30 @@ class ConfigManagerTest {
     }
 
     @Test
+    @DisplayName("natural-growth defaults on, with baby-scale 0.5 and 5-minute growth")
+    void naturalGrowthDefaults() {
+        assertTrue(config.isNaturalGrowth());
+        assertEquals(0.5, config.getBabyScale());
+        assertEquals(5, config.getGrowthDurationMinutes());
+    }
+
+    @Test
+    @DisplayName("baby-scale is clamped to [0.1, 1.0] and growth-duration to at least 1")
+    void growthValuesAreClamped() {
+        plugin.getConfig().set("advanced.baby-scale", 5.0);
+        plugin.getConfig().set("advanced.growth-duration-minutes", 0);
+        plugin.saveConfig();
+        config.loadConfiguration();
+        assertEquals(1.0, config.getBabyScale());
+        assertEquals(1, config.getGrowthDurationMinutes());
+
+        plugin.getConfig().set("advanced.baby-scale", 0.0);
+        plugin.saveConfig();
+        config.loadConfiguration();
+        assertEquals(0.1, config.getBabyScale());
+    }
+
+    @Test
     @DisplayName("Each configured fish maps to its seed material")
     void mapsFishToSeed() {
         assertEquals(Material.WHEAT_SEEDS, config.getSeedForFish(EntityType.SALMON));
@@ -104,6 +128,36 @@ class ConfigManagerTest {
     @DisplayName("max-tracked-fish is loaded (default 1000)")
     void loadsMaxTrackedFish() {
         assertEquals(1000, config.getMaxTrackedFish());
+    }
+
+    @Test
+    @DisplayName("debug-logging defaults to off and raises the logger level when enabled")
+    void debugLoggingControlsLoggerLevel() {
+        assertFalse(config.isDebugLogging());
+        assertEquals(java.util.logging.Level.INFO, plugin.getLogger().getLevel());
+
+        plugin.getConfig().set("advanced.debug-logging", true);
+        plugin.saveConfig();
+        config.loadConfiguration();
+
+        assertTrue(config.isDebugLogging());
+        assertEquals(java.util.logging.Level.FINE, plugin.getLogger().getLevel());
+    }
+
+    @Test
+    @DisplayName("breeding-success-rate defaults to 1.0 and is clamped to [0.0, 1.0]")
+    void breedingSuccessRateIsClamped() {
+        assertEquals(1.0, config.getBreedingSuccessRate());
+
+        plugin.getConfig().set("advanced.breeding-success-rate", 5.0);
+        plugin.saveConfig();
+        config.loadConfiguration();
+        assertEquals(1.0, config.getBreedingSuccessRate());
+
+        plugin.getConfig().set("advanced.breeding-success-rate", -2.0);
+        plugin.saveConfig();
+        config.loadConfiguration();
+        assertEquals(0.0, config.getBreedingSuccessRate());
     }
 
     @Test

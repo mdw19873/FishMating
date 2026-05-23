@@ -163,6 +163,57 @@ class BreedingManagerTest {
         assertTrue(xp >= 1 && xp <= 7, "breeding XP should be within vanilla's 1-7, was " + xp);
     }
 
+    private Entity findBabySalmon(WorldMock world, Entity parent1, Entity parent2) {
+        return world.getEntitiesByClass(org.bukkit.entity.Salmon.class).stream()
+                .map(f -> (Entity) f)
+                .filter(f -> !f.getUniqueId().equals(parent1.getUniqueId()))
+                .filter(f -> !f.getUniqueId().equals(parent2.getUniqueId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Test
+    @DisplayName("With natural growth off, a full-size bred fish still gets the breeding cooldown")
+    void fullSizeBabyStillGetsCooldown() {
+        plugin.getConfig().set("advanced.natural-growth", false);
+        plugin.saveConfig();
+        plugin.getConfigManager().loadConfiguration();
+
+        WorldMock world = server.addSimpleWorld("w");
+        Entity p1 = spawnReadySalmon(world, 0, 0);
+        Entity p2 = spawnReadySalmon(world, 2, 0);
+
+        server.getScheduler().performTicks(60L);
+
+        Entity baby = findBabySalmon(world, p1, p2);
+        assertNotNull(baby, "expected a baby salmon to spawn");
+        int cooldown = plugin.getConfigManager().getBreedingCooldownMinutes();
+        assertFalse(plugin.getFishManager().getFishData(baby).canBreed(cooldown),
+                "a full-size bred fish should still be on the breeding cooldown");
+    }
+
+    @Test
+    @DisplayName("With breeding-success-rate 0.0 no baby spawns, but parents still go on cooldown")
+    void zeroSuccessRateProducesNoBabyButStillCools() {
+        plugin.getConfig().set("advanced.breeding-success-rate", 0.0);
+        plugin.saveConfig();
+        plugin.getConfigManager().loadConfiguration();
+
+        WorldMock world = server.addSimpleWorld("w");
+        Entity p1 = spawnReadySalmon(world, 0, 0);
+        spawnReadySalmon(world, 2, 0);
+
+        server.getScheduler().performTicks(60L);
+
+        // No third salmon: the breed failed the success roll.
+        assertEquals(2, world.getEntitiesByClass(org.bukkit.entity.Salmon.class).size(),
+                "no baby should spawn at a 0.0 success rate");
+        // But the attempt still completed, so a parent is on cooldown.
+        int cooldown = plugin.getConfigManager().getBreedingCooldownMinutes();
+        assertFalse(plugin.getFishManager().getFishData(p1).canBreed(cooldown),
+                "a failed attempt should still apply the breeding cooldown");
+    }
+
     @Test
     @DisplayName("A bred tropical fish baby inherits a parent's variant")
     void tropicalFishBabyInheritsParentVariant() {

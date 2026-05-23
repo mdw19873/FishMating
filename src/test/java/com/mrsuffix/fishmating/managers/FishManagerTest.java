@@ -2,6 +2,7 @@ package com.mrsuffix.fishmating.managers;
 
 import com.mrsuffix.fishmating.FishMatingPlugin;
 import com.mrsuffix.fishmating.models.FishData;
+import com.mrsuffix.fishmating.utils.ScaleUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
@@ -69,6 +70,26 @@ class FishManagerTest {
 
     private void runFishUpdate() {
         server.getScheduler().performTicks(20L);
+    }
+
+    @Test
+    @DisplayName("grownScale steps toward full size and never overshoots 1.0")
+    void grownScaleStepsAndCaps() {
+        // 5-minute growth at the 10-tick update period => 600 updates; one step is small.
+        double oneStep = FishManager.grownScale(0.5, 0.5, 5, 10L);
+        assertTrue(oneStep > 0.5 && oneStep < 0.6, "one step should nudge up slightly: " + oneStep);
+        // A step that would cross 1.0 is capped, and a full-grown fish stays at 1.0.
+        assertEquals(1.0, FishManager.grownScale(0.9999, 0.5, 5, 10L));
+        assertEquals(1.0, FishManager.grownScale(1.0, 0.5, 5, 10L));
+    }
+
+    @Test
+    @DisplayName("isFullGrown treats near-1.0 scales as adult and smaller ones as juvenile")
+    void isFullGrownThreshold() {
+        assertTrue(ScaleUtil.isFullGrown(1.0));
+        assertTrue(ScaleUtil.isFullGrown(0.999));
+        assertFalse(ScaleUtil.isFullGrown(0.5));
+        assertFalse(ScaleUtil.isFullGrown(0.99));
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.mrsuffix.fishmating.managers;
 import com.mrsuffix.fishmating.FishMatingPlugin;
 import com.mrsuffix.fishmating.models.FishData;
 import com.mrsuffix.fishmating.utils.ParticleUtils;
+import com.mrsuffix.fishmating.utils.ScaleUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -24,6 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class FishManager {
 
+    /** Tick period of the fish update task (every 0.5s). Growth math depends on this. */
+    private static final long UPDATE_PERIOD_TICKS = 10L;
+
     private final FishMatingPlugin plugin;
     private final Map<UUID, FishData> fishDataMap;
     private BukkitTask fishUpdateTask;
@@ -44,7 +48,7 @@ public class FishManager {
             } catch (Exception e) {
                 plugin.getLogger().warning("Error in fish update task: " + e.getMessage());
             }
-        }, 20L, 10L); // Run every 0.5 seconds
+        }, 20L, UPDATE_PERIOD_TICKS); // Run every 0.5 seconds
     }
 
     /**
@@ -77,6 +81,11 @@ public class FishManager {
     private void updateFish(FishData fishData, ConfigManager config) {
         Entity fish = fishData.getEntity();
 
+        // Grow sub-adult fish toward full size when natural growth is enabled.
+        if (config.isNaturalGrowth()) {
+            advanceGrowth(fish, config);
+        }
+
         // Check for breeding timeout
         if (fishData.hasBreedingTimedOut(config.getBreedingTimeoutSeconds())) {
             fishData.setBreedingReady(false);
@@ -88,10 +97,44 @@ public class FishManager {
             ParticleUtils.showHeartParticles(fish.getLocation(), config.getParticleCount());
         }
 
-        // Find and move toward seeds if not breeding ready
-        if (!fishData.isBreedingReady() && fishData.canBreed(config.getBreedingCooldownMinutes())) {
+        // Find and move toward seeds if not breeding ready. A fish that isn't full-grown
+        // yet (natural growth in progress) can't seek or eat seeds, so it can't become
+        // breeding-ready until it matures.
+        boolean fullGrown = !config.isNaturalGrowth() || ScaleUtil.isFullGrown(fish);
+        if (fullGrown && !fishData.isBreedingReady() && fishData.canBreed(config.getBreedingCooldownMinutes())) {
             handleSeedSeeking(fishData, config);
         }
+    }
+
+    /**
+     * Nudges a still-growing fish's scale toward full size. The growth is spread across
+     * {@code growth-duration-minutes}, split into the update task's tick period, so it
+     * matures smoothly. Reading the current scale each time means growth resumes
+     * naturally after a restart from whatever size the fish was persisted at.
+     *
+     * @param fish   the fish to grow
+     * @param config the configuration manager
+     */
+    private void advanceGrowth(Entity fish, ConfigManager config) {
+        double current = ScaleUtil.getScale(fish);
+        if (current >= 1.0) {
+            return; // already full-grown (or no scale attribute available)
+        }
+        ScaleUtil.setScale(fish, grownScale(current, config.getBabyScale(),
+                config.getGrowthDurationMinutes(), UPDATE_PERIOD_TICKS));
+    }
+
+    /**
+     * One growth step toward full size, spreading baby→adult across {@code durationMinutes}
+     * expressed in update-task periods. Pure (no entity/attribute access) so the growth
+     * pacing is unit-testable independent of the live scale attribute.
+     *
+     * @return the next scale, never exceeding 1.0
+     */
+    static double grownScale(double current, double babyScale, int durationMinutes, long periodTicks) {
+        double updatesToMature = (durationMinutes * 60.0 * 20.0) / periodTicks;
+        double delta = (1.0 - babyScale) / updatesToMature;
+        return Math.min(1.0, current + delta);
     }
 
     /**

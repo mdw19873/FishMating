@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `advanced.natural-growth` now works: bred fish spawn at `advanced.baby-scale` (default
+  0.5) and grow to full size over `advanced.growth-duration-minutes` (default 5). A fish
+  can't breed until it is full-grown. Growth resumes correctly after a restart.
+
+### Changed
+- `advanced.breeding-success-rate` is now enforced (previously ignored): it sets the
+  chance a ready pair produces a baby. A failed attempt still applies the cooldown.
+- `advanced.debug-logging` is now enforced (previously ignored): when on, it raises the
+  plugin log level so the existing debug diagnostics are emitted.
 
 ## [1.2.0] - 2026-05-23
 ### Added

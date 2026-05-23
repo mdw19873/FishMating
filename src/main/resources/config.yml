@@ -31,16 +31,20 @@ fish-mappings:
   pufferfish: melon_seeds
   tropical_fish: beetroot_seeds
 
-# Advanced Settings (for future expansion)
+# Advanced Settings
 advanced:
-  # Whether to log debug information
+  # Whether to log debug information (raises the plugin log level to FINE)
   debug-logging: false
 
   # Maximum number of fish that can be tracked simultaneously
   max-tracked-fish: 1000
 
-  # Whether baby fish should grow up naturally
+  # Bred fish spawn small and grow to full size over time. Set false for full-size babies.
   natural-growth: true
+  # Starting size of a bred fish, 0.1-1.0 (1.0 = full adult); used when natural-growth is on.
+  baby-scale: 0.5
+  # Minutes for a baby to grow to full size.
+  growth-duration-minutes: 5
 
-  # Chance for successful breeding (0.0 to 1.0)
+  # Chance a ready pair actually produces a baby, 0.0-1.0.
   breeding-success-rate: 1.0
