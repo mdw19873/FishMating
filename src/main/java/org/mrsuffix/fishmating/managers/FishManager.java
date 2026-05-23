@@ -25,12 +25,21 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class FishManager {
 
-    /** Tick period of the fish update task (every 0.5s). Growth math depends on this. */
+    /** Tick period of the fish update task (every 0.5s). */
     private static final long UPDATE_PERIOD_TICKS = 10L;
+
+    /**
+     * How often a growing fish's scale is actually advanced (~1.5s). Coarser than the
+     * update period so growth emits fewer attribute-update packets, while the maturity
+     * check still reads the scale every tick. Must be a multiple of UPDATE_PERIOD_TICKS.
+     */
+    private static final long GROWTH_PERIOD_TICKS = 30L;
+    private static final long UPDATES_PER_GROWTH_STEP = GROWTH_PERIOD_TICKS / UPDATE_PERIOD_TICKS;
 
     private final FishMatingPlugin plugin;
     private final Map<UUID, FishData> fishDataMap;
     private BukkitTask fishUpdateTask;
+    private long updateCounter;
 
     public FishManager(FishMatingPlugin plugin) {
         this.plugin = plugin;
@@ -63,10 +72,13 @@ public class FishManager {
             return !entity.isValid() || entity.isDead();
         });
 
+        // Advance growth only on every Nth cycle to limit attribute-update packets.
+        boolean growthTick = (updateCounter++ % UPDATES_PER_GROWTH_STEP) == 0;
+
         // Update each fish
         for (FishData fishData : fishDataMap.values()) {
             try {
-                updateFish(fishData, config);
+                updateFish(fishData, config, growthTick);
             } catch (Exception e) {
                 plugin.getLogger().warning("Error updating fish: " + e.getMessage());
             }
@@ -78,12 +90,22 @@ public class FishManager {
      * @param fishData The fish data to update
      * @param config The configuration manager
      */
-    private void updateFish(FishData fishData, ConfigManager config) {
+    private void updateFish(FishData fishData, ConfigManager config, boolean growthTick) {
         Entity fish = fishData.getEntity();
 
-        // Grow sub-adult fish toward full size when natural growth is enabled.
+        // Natural growth: read the scale once and reuse it for both growing the fish and
+        // the breeding-maturity check below. Growth advances per growth tick (not wall
+        // clock), so it pauses while the fish is unloaded and resumes from the persisted
+        // scale after a restart. The scale write happens only on a growth tick, but the
+        // maturity check reads every update.
+        boolean fullGrown = true;
         if (config.isNaturalGrowth()) {
-            advanceGrowth(fish, config);
+            double scale = ScaleUtil.getScale(fish);
+            if (growthTick && scale < 1.0) {
+                ScaleUtil.setScale(fish, grownScale(scale, config.getBabyScale(),
+                        config.getGrowthDurationMinutes(), GROWTH_PERIOD_TICKS));
+            }
+            fullGrown = ScaleUtil.isFullGrown(scale);
         }
 
         // Check for breeding timeout
@@ -98,30 +120,10 @@ public class FishManager {
         }
 
         // Find and move toward seeds if not breeding ready. A fish that isn't full-grown
-        // yet (natural growth in progress) can't seek or eat seeds, so it can't become
-        // breeding-ready until it matures.
-        boolean fullGrown = !config.isNaturalGrowth() || ScaleUtil.isFullGrown(fish);
+        // yet can't seek or eat seeds, so it can't become breeding-ready until it matures.
         if (fullGrown && !fishData.isBreedingReady() && fishData.canBreed(config.getBreedingCooldownMinutes())) {
             handleSeedSeeking(fishData, config);
         }
-    }
-
-    /**
-     * Nudges a still-growing fish's scale toward full size. The growth is spread across
-     * {@code growth-duration-minutes}, split into the update task's tick period, so it
-     * matures smoothly. Reading the current scale each time means growth resumes
-     * naturally after a restart from whatever size the fish was persisted at.
-     *
-     * @param fish   the fish to grow
-     * @param config the configuration manager
-     */
-    private void advanceGrowth(Entity fish, ConfigManager config) {
-        double current = ScaleUtil.getScale(fish);
-        if (current >= 1.0) {
-            return; // already full-grown (or no scale attribute available)
-        }
-        ScaleUtil.setScale(fish, grownScale(current, config.getBabyScale(),
-                config.getGrowthDurationMinutes(), UPDATE_PERIOD_TICKS));
     }
 
     /**

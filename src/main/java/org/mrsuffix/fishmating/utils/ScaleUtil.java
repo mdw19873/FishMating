@@ -22,6 +22,9 @@ public final class ScaleUtil {
 
     private static final NamespacedKey SCALE_KEY = NamespacedKey.minecraft("scale");
 
+    /** Resolved scale attribute, cached after first lookup (the registry entry is stable). */
+    private static Attribute scaleAttribute;
+
     /** At/above this scale a fish counts as full-grown (small float-accumulation margin). */
     private static final double FULL_GROWN_SCALE = 0.999;
 
@@ -42,7 +45,15 @@ public final class ScaleUtil {
         if (!(entity instanceof Attributable attributable)) {
             return null;
         }
-        Attribute scale = Registry.ATTRIBUTE.get(SCALE_KEY);
+        Attribute scale = scaleAttribute;
+        if (scale == null) {
+            // Resolve once and cache. Only cache a non-null result so a platform that
+            // doesn't yet have the attribute available is retried later.
+            scale = Registry.ATTRIBUTE.get(SCALE_KEY);
+            if (scale != null) {
+                scaleAttribute = scale;
+            }
+        }
         return scale == null ? null : attributable.getAttribute(scale);
     }
 
