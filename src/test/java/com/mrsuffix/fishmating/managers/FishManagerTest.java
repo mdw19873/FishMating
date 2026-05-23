@@ -46,6 +46,13 @@ class FishManagerTest {
         plugin = MockBukkit.load(FishMatingPlugin.class);
         fishManager = plugin.getFishManager();
         world = server.addSimpleWorld("w");
+
+        // MockBukkit doesn't implement Item#getThrower, so disable the player-thrown
+        // requirement for these mechanics tests; with it off the gate short-circuits and
+        // getThrower is never called. (Default is true in production config.)
+        plugin.getConfig().set("advanced.require-player-thrown-seeds", false);
+        plugin.saveConfig();
+        plugin.getConfigManager().loadConfiguration();
     }
 
     @AfterEach

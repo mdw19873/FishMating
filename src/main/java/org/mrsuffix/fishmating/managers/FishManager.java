@@ -159,7 +159,8 @@ public class FishManager {
 
         // Find nearest matching seed if no current target
         if (currentTarget == null) {
-            Item nearestSeed = findNearestSeed(fish.getLocation(), requiredSeed, config.getDetectionRadius());
+            Item nearestSeed = findNearestSeed(fish.getLocation(), requiredSeed,
+                    config.getDetectionRadius(), config.isRequirePlayerThrownSeeds());
             if (nearestSeed != null) {
                 fishData.setTargetSeed(nearestSeed);
                 currentTarget = nearestSeed;
@@ -183,9 +184,11 @@ public class FishManager {
      * @param location The center location
      * @param seedType The seed material type
      * @param radius The search radius
+     * @param requirePlayerThrown When true, only seeds with a thrower (i.e. dropped by a
+     *                            player) qualify; dispenser/dropper-spawned seeds are skipped
      * @return The nearest seed item, or null if none found
      */
-    private Item findNearestSeed(Location location, Material seedType, double radius) {
+    private Item findNearestSeed(Location location, Material seedType, double radius, boolean requirePlayerThrown) {
         // Filter to items during the AABB scan, then compare squared distances to
         // avoid the per-candidate sqrt of Location#distance.
         Item nearest = null;
@@ -195,6 +198,11 @@ public class FishManager {
                 .getNearbyEntities(location, radius, radius, radius, e -> e instanceof Item)) {
             Item item = (Item) entity;
             if (item.getItemStack().getType() != seedType) {
+                continue;
+            }
+            // A dispenser/dropper-spawned seed has no thrower; require one to block
+            // fully automated breeding farms when configured.
+            if (requirePlayerThrown && item.getThrower() == null) {
                 continue;
             }
             if (!isInWater(item.getLocation())) {

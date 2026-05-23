@@ -30,6 +30,7 @@ public class ConfigManager {
     private boolean naturalGrowth;
     private double babyScale;
     private int growthDurationMinutes;
+    private boolean requirePlayerThrownSeeds;
 
     /** Hard ceiling on breeding XP so it can never exceed vanilla mob breeding (1-7). */
     private static final int MAX_BREEDING_EXPERIENCE = 7;
@@ -75,6 +76,10 @@ public class ConfigManager {
             double scale = plugin.getConfig().getDouble("advanced.baby-scale", 0.5);
             babyScale = Math.max(0.1, Math.min(1.0, scale));
             growthDurationMinutes = Math.max(1, plugin.getConfig().getInt("advanced.growth-duration-minutes", 10));
+
+            // When on, only player-thrown seeds attract fish; dispenser/dropper-spawned
+            // seeds are ignored, which blocks fully automated breeding farms.
+            requirePlayerThrownSeeds = plugin.getConfig().getBoolean("advanced.require-player-thrown-seeds", true);
 
             // Load fish-seed mappings
             fishSeedMappings.clear();
@@ -157,5 +162,7 @@ public class ConfigManager {
     public double getBabyScale() { return babyScale; }
     /** @return minutes for a baby to grow from baby-scale to full size. */
     public int getGrowthDurationMinutes() { return growthDurationMinutes; }
+    /** @return whether only player-thrown seeds attract fish (blocks dispenser automation). */
+    public boolean isRequirePlayerThrownSeeds() { return requirePlayerThrownSeeds; }
     public Map<EntityType, Material> getFishSeedMappings() { return new HashMap<>(fishSeedMappings); }
 }

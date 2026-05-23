@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- `advanced.require-player-thrown-seeds` (default true): only seeds thrown by a player
+  attract fish, so dispenser/dropper-based automated breeding farms no longer work. Set
+  it to false to restore the previous "any dropped seed" behavior.
 - `advanced.natural-growth` now works: bred fish spawn at `advanced.baby-scale` (default
   0.5) and grow to full size over `advanced.growth-duration-minutes` (default 10). A fish
   can't breed until it is full-grown. Growth resumes correctly after a restart.

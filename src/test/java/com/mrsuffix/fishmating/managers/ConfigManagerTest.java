@@ -77,6 +77,12 @@ class ConfigManagerTest {
     }
 
     @Test
+    @DisplayName("require-player-thrown-seeds defaults to true")
+    void requirePlayerThrownSeedsDefaultsTrue() {
+        assertTrue(config.isRequirePlayerThrownSeeds());
+    }
+
+    @Test
     @DisplayName("baby-scale is clamped to [0.1, 1.0] and growth-duration to at least 1")
     void growthValuesAreClamped() {
         plugin.getConfig().set("advanced.baby-scale", 5.0);

@@ -48,3 +48,7 @@ advanced:
 
   # Chance a ready pair actually produces a baby, 0.0-1.0.
   breeding-success-rate: 1.0
+
+  # Only seeds thrown by a player attract fish. Blocks automated (dispenser/dropper)
+  # breeding farms. Set false to let any dropped seed work.
+  require-player-thrown-seeds: true
