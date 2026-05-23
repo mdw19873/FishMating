@@ -79,6 +79,8 @@ advanced:
   require-player-within: 0
   # Respect the WorldGuard "allow-fish-breeding" region flag (needs WorldGuard)
   worldguard-integration: false
+  # Bred babies inherit "won't despawn" persistence from a persisting parent
+  inherit-persistence: false
 ````
 
 Everything from detection range to particle effects and breeding logic can be tweaked! 🎛️
@@ -109,6 +111,12 @@ Everything from detection range to particle effects and breeding logic can be tw
 > opts out — e.g. `/rg flag <region> allow-fish-breeding deny`. The flag is registered
 > automatically whenever WorldGuard is present; this option only controls enforcement, and
 > it has no effect when WorldGuard isn't installed.
+
+> **`inherit-persistence`** (default **false**) makes a bred baby *inherit* persistence: if
+> at least one parent already won't despawn — like a fish placed from a bucket, which vanilla
+> flags `PersistenceRequired` — the newborn won't despawn either. Offspring of ordinary wild
+> fish still despawn as normal, so this only carries the trait forward through lineages a
+> player has deliberately invested in (and keeps wild-fish breeding farms bounded).
 
 ---
 

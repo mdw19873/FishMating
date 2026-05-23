@@ -61,3 +61,8 @@ advanced:
   # everywhere unless a region sets the flag to DENY. Requires WorldGuard installed;
   # ignored otherwise.
   worldguard-integration: false
+
+  # Let a bred baby inherit "won't despawn" persistence when at least one parent already
+  # persists (e.g. a fish placed from a bucket). Wild-fish offspring still despawn, so this
+  # only carries the trait forward through player-invested lineages.
+  inherit-persistence: false

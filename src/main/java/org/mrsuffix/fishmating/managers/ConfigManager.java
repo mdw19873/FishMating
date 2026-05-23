@@ -33,6 +33,7 @@ public class ConfigManager {
     private boolean requirePlayerThrownSeeds;
     private double requirePlayerWithin;
     private boolean worldGuardIntegration;
+    private boolean inheritPersistence;
 
     /** Hard ceiling on breeding XP so it can never exceed vanilla mob breeding (1-7). */
     private static final int MAX_BREEDING_EXPERIENCE = 7;
@@ -90,6 +91,11 @@ public class ConfigManager {
             // When on (and WorldGuard is installed), respect the "allow-fish-breeding" region
             // flag: breeding is denied where a region sets it to DENY. Off by default.
             worldGuardIntegration = plugin.getConfig().getBoolean("advanced.worldguard-integration", false);
+
+            // When on, a bred baby inherits "won't despawn" persistence if at least one
+            // parent already persists (e.g. a bucket-placed fish). Off by default so wild
+            // breeding stays despawnable and bounded.
+            inheritPersistence = plugin.getConfig().getBoolean("advanced.inherit-persistence", false);
 
             // Load fish-seed mappings
             fishSeedMappings.clear();
@@ -178,5 +184,7 @@ public class ConfigManager {
     public double getRequirePlayerWithin() { return requirePlayerWithin; }
     /** @return whether to respect the WorldGuard "allow-fish-breeding" region flag. */
     public boolean isWorldGuardIntegration() { return worldGuardIntegration; }
+    /** @return whether a bred baby inherits "won't despawn" persistence from a persisting parent. */
+    public boolean isInheritPersistence() { return inheritPersistence; }
     public Map<EntityType, Material> getFishSeedMappings() { return new HashMap<>(fishSeedMappings); }
 }

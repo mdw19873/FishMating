@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   defaults to `ALLOW`, so breeding works everywhere unless a region opts out. The plugin
   registers the flag whenever WorldGuard is present; the config option only controls
   enforcement. No effect when WorldGuard isn't installed.
+- `advanced.inherit-persistence` (default false): when on, a bred baby inherits "won't
+  despawn" persistence if at least one parent already persists (e.g. a fish placed from a
+  bucket), mirroring vanilla's `PersistenceRequired` flag. Wild-fish offspring still
+  despawn, so the trait only carries forward through player-invested lineages.
 
 ## [1.3.0] - 2026-05-23
 ### Added

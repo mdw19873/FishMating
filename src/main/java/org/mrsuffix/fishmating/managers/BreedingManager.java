@@ -5,6 +5,7 @@ import com.mrsuffix.fishmating.integrations.WorldGuardHook;
 import com.mrsuffix.fishmating.models.BreedingPair;
 import com.mrsuffix.fishmating.models.FishData;
 import com.mrsuffix.fishmating.utils.ParticleUtils;
+import com.mrsuffix.fishmating.utils.PersistenceUtil;
 import com.mrsuffix.fishmating.utils.PlayerProximityUtil;
 import com.mrsuffix.fishmating.utils.ScaleUtil;
 import org.bukkit.Bukkit;
@@ -205,6 +206,12 @@ public class BreedingManager {
 
             // Inherit appearance for species with visual variants (e.g. tropical fish).
             inheritAppearance(baby, parent1, parent2);
+
+            // Inherit "won't despawn" persistence from the parents (if enabled): a baby of a
+            // bucket-placed (persistent) parent persists too, while wild-fish offspring stay
+            // despawnable. Off by default.
+            PersistenceUtil.inheritPersistence(baby, parent1, parent2,
+                    plugin.getConfigManager().isInheritPersistence());
 
             // Put the newborn on the same breeding cooldown as its parents. Without this
             // a freshly bred fish could immediately consume a seed and breed again,
