@@ -74,7 +74,7 @@ public class ConfigManager {
             naturalGrowth = plugin.getConfig().getBoolean("advanced.natural-growth", true);
             double scale = plugin.getConfig().getDouble("advanced.baby-scale", 0.5);
             babyScale = Math.max(0.1, Math.min(1.0, scale));
-            growthDurationMinutes = Math.max(1, plugin.getConfig().getInt("advanced.growth-duration-minutes", 5));
+            growthDurationMinutes = Math.max(1, plugin.getConfig().getInt("advanced.growth-duration-minutes", 10));
 
             // Load fish-seed mappings
             fishSeedMappings.clear();

@@ -69,11 +69,11 @@ class ConfigManagerTest {
     }
 
     @Test
-    @DisplayName("natural-growth defaults on, with baby-scale 0.5 and 5-minute growth")
+    @DisplayName("natural-growth defaults on, with baby-scale 0.5 and 10-minute growth")
     void naturalGrowthDefaults() {
         assertTrue(config.isNaturalGrowth());
         assertEquals(0.5, config.getBabyScale());
-        assertEquals(5, config.getGrowthDurationMinutes());
+        assertEquals(10, config.getGrowthDurationMinutes());
     }
 
     @Test

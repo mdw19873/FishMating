@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - `advanced.natural-growth` now works: bred fish spawn at `advanced.baby-scale` (default
-  0.5) and grow to full size over `advanced.growth-duration-minutes` (default 5). A fish
+  0.5) and grow to full size over `advanced.growth-duration-minutes` (default 10). A fish
   can't breed until it is full-grown. Growth resumes correctly after a restart.
 
 ### Changed

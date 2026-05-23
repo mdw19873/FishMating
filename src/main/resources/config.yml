@@ -44,7 +44,7 @@ advanced:
   # Starting size of a bred fish, 0.1-1.0 (1.0 = full adult); used when natural-growth is on.
   baby-scale: 0.5
   # Minutes for a baby to grow to full size.
-  growth-duration-minutes: 5
+  growth-duration-minutes: 10
 
   # Chance a ready pair actually produces a baby, 0.0-1.0.
   breeding-success-rate: 1.0
