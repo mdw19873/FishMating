@@ -80,7 +80,7 @@ Everything from detection range to particle effects and breeding logic can be tw
 
 ## 🛠 Installation
 
-1️⃣ Download **FishMating.jar** from the [latest release (v1.1.0)](https://github.com/mdw19873/FishMating/releases/tag/v1.1.0).
+1️⃣ Download **FishMating.jar** from the [latest release (v1.2.0)](https://github.com/mdw19873/FishMating/releases/tag/v1.2.0).
 2️⃣ Place it in your server's `/plugins` folder.
 3️⃣ Restart or reload your server.
 4️⃣ Edit the `config.yml` to fit your server’s style!
