@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bucket), mirroring vanilla's `PersistenceRequired` flag. Wild-fish offspring still
   despawn, so the trait only carries forward through player-invested lineages.
 
+### Changed
+- Breeding-ready fish now emit a single heart burst when they eat a seed (alongside the
+  existing consumption particles), instead of a continuous stream of hearts for the whole
+  readiness window. This matches how love-mode hearts actually appear in current Java
+  Edition (shown once, per the long-standing bug
+  [MC-93826](https://bugs.mojang.com/browse/MC-93826)) and removes a per-fish, per-tick
+  particle packet. The mating and birth particle effects are unchanged.
+
 ## [1.3.0] - 2026-05-23
 ### Added
 - `advanced.require-player-thrown-seeds` (default true): only seeds thrown by a player

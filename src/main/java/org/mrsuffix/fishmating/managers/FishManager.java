@@ -115,10 +115,9 @@ public class FishManager {
             fishData.setTargetSeed(null);
         }
 
-        // Show particles if breeding ready
-        if (fishData.isBreedingReady() && config.isParticlesEnabled()) {
-            ParticleUtils.showHeartParticles(fish.getLocation(), config.getParticleCount());
-        }
+        // No per-tick heart particles here. Vanilla Java shows love-mode hearts only once
+        // (when the animal is fed), not continuously, due to MC-93826 — so the single burst
+        // lives in consumeSeed(). See the note there before changing this.
 
         // Find and move toward seeds if not breeding ready. A fish that isn't full-grown
         // yet can't seek or eat seeds, so it can't become breeding-ready until it matures.
@@ -267,9 +266,17 @@ public class FishManager {
             fishData.setBreedingReady(true);
             fishData.setTargetSeed(null);
 
-            // Show consumption particles
+            // Show the consumption puff plus a single heart burst on entering breeding
+            // readiness, matching vanilla: feeding an animal puts it in love mode and shows
+            // hearts. NOTE: in current Java Edition the love-mode hearts appear only ONCE (a
+            // long-standing bug, MC-93826, https://bugs.mojang.com/browse/MC-93826) rather
+            // than continuously as intended. We match that observed behavior for consistency.
+            // If MC-93826 is ever fixed so vanilla shows hearts continuously, restore a
+            // per-tick emission in updateFish().
             if (plugin.getConfigManager().isParticlesEnabled()) {
-                ParticleUtils.showConsumptionParticles(fishData.getEntity().getLocation());
+                Location loc = fishData.getEntity().getLocation();
+                ParticleUtils.showConsumptionParticles(loc);
+                ParticleUtils.showHeartParticles(loc, plugin.getConfigManager().getParticleCount());
             }
 
             plugin.getLogger().fine(() -> "Fish consumed seed and is now breeding ready");
