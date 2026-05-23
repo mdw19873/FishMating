@@ -44,7 +44,7 @@ Here’s an example `config.yml` with full customization options:
 ```yaml
 # FishMating Plugin Configuration
 # Author: mrsuffix
-# Version: 1.1.0
+# Version: ${project.version}
 
 settings:
   detection-radius: 5.0
@@ -61,11 +61,20 @@ fish-mappings:
   tropical_fish: beetroot_seeds
 
 advanced:
+  # Raise the plugin log level to FINE for debug diagnostics
   debug-logging: false
   # Upper bound on how many fish are tracked at once (see note below)
   max-tracked-fish: 1000
+  # Bred fish spawn small and grow to full size over time
   natural-growth: true
+  # Starting size of a bred fish, 0.1-1.0 (used when natural-growth is on)
+  baby-scale: 0.5
+  # Minutes for a baby to grow to full size
+  growth-duration-minutes: 10
+  # Chance a ready pair produces a baby, 0.0-1.0
   breeding-success-rate: 1.0
+  # Only player-thrown seeds attract fish (blocks dispenser/dropper auto-farms)
+  require-player-thrown-seeds: true
 ````
 
 Everything from detection range to particle effects and breeding logic can be tweaked! 🎛️
@@ -75,6 +84,15 @@ Everything from detection range to particle effects and breeding logic can be tw
 > are simply not tracked (they won't seek seeds or breed) until tracked fish are freed —
 > e.g. when they die or their chunk unloads. This bounds memory and CPU on busy servers.
 > Raise it for large aquatic servers, or lower it to be more conservative.
+
+> **`natural-growth`** makes bred fish spawn at `baby-scale` and grow to full size over
+> `growth-duration-minutes`. A fish can't breed until it's full-grown, and growth only
+> advances while it's loaded (so it pauses when its chunk unloads and resumes afterward).
+> Set `natural-growth: false` for full-size offspring with no growth phase.
+
+> **`require-player-thrown-seeds`** (default **true**) makes only seeds *thrown by a
+> player* attract fish, so dispenser/dropper-fed contraptions can't run automated
+> breeding/XP farms. Set it to `false` to let any dropped seed work.
 
 ---
 
