@@ -183,7 +183,16 @@ public class BreedingManager {
             // Inherit appearance for species with visual variants (e.g. tropical fish).
             inheritAppearance(baby, parent1, parent2);
 
-            // Set baby properties if supported
+            // Put the newborn on the same breeding cooldown as its parents. Without this
+            // a freshly bred fish could immediately consume a seed and breed again,
+            // letting a player chain births far faster than intended. getFishData()
+            // creates (or returns the existing) tracking record for the baby.
+            plugin.getFishManager().getFishData(baby).setLastBreedingTime();
+
+            // Set baby properties if supported. The four default fish are not Ageable in
+            // current Minecraft, so this branch is inert for them today; it is kept
+            // deliberately so offspring are correctly aged-down if a future version makes
+            // these species Ageable, or if an admin maps an Ageable mob via config.
             if (baby instanceof org.bukkit.entity.Ageable) {
                 ((org.bukkit.entity.Ageable) baby).setBaby();
             }
