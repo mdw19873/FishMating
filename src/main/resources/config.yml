@@ -11,7 +11,12 @@ settings:
   breeding-timeout-seconds: 30
 
   # Time in minutes fish must wait between breeding attempts
-  breeding-cooldown-minutes: 3
+  breeding-cooldown-minutes: 5
+
+  # Experience awarded when a pair successfully breeds. A random amount from 1 up to
+  # this value is dropped at the baby (matching vanilla mob breeding, which gives 1-7).
+  # Capped at 7 so it can never exceed vanilla; set to 0 to award no experience.
+  breeding-experience: 7
 
   # Whether to show particle effects
   enable-particles: true

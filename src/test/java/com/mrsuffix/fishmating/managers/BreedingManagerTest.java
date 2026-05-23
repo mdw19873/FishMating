@@ -17,6 +17,7 @@ import org.mockbukkit.mockbukkit.world.WorldMock;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests for {@link BreedingManager}'s pairing logic, driven by ticking
@@ -142,6 +143,24 @@ class BreedingManagerTest {
         int cooldown = plugin.getConfigManager().getBreedingCooldownMinutes();
         assertFalse(plugin.getFishManager().getFishData(baby).canBreed(cooldown),
                 "a freshly bred fish should be on cooldown, not immediately breedable");
+    }
+
+    @Test
+    @DisplayName("A successful breed drops experience within the vanilla 1-7 range")
+    void breedingAwardsExperience() {
+        WorldMock world = server.addSimpleWorld("w");
+        spawnReadySalmon(world, 0, 0);
+        spawnReadySalmon(world, 2, 0);
+
+        // Breeding check fires at tick 20 and spawns the baby (and XP) 40 ticks later.
+        server.getScheduler().performTicks(60L);
+
+        java.util.Collection<org.bukkit.entity.ExperienceOrb> orbs =
+                world.getEntitiesByClass(org.bukkit.entity.ExperienceOrb.class);
+        assertEquals(1, orbs.size(), "expected exactly one experience orb from the breed");
+
+        int xp = orbs.iterator().next().getExperience();
+        assertTrue(xp >= 1 && xp <= 7, "breeding XP should be within vanilla's 1-7, was " + xp);
     }
 
     @Test

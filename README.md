@@ -9,7 +9,7 @@
 
 **FishMating** is a feature-rich and highly configurable Minecraft plugin supporting **Minecraft 1.21.x through 26.1**. Crafted with ❤️ by `mrsuffix`, this plugin brings your aquatic biomes to life by introducing a unique, seed-based fish breeding mechanic.
 
-Throw seeds into water to attract nearby fish! Fish will detect matching seeds within a **5-block radius**, swim toward them, and become *breeding-ready* after consuming a seed. If two ready fish find each other within **30 seconds**, they breed and spawn a cute baby fish 🐣. After breeding, fish wait **3 minutes** before breeding again.
+Throw seeds into water to attract nearby fish! Fish will detect matching seeds within a **5-block radius**, swim toward them, and become *breeding-ready* after consuming a seed. If two ready fish find each other within **30 seconds**, they breed and spawn a cute baby fish 🐣 and drop a little experience, just like vanilla mob breeding. After breeding, fish wait **5 minutes** before breeding again.
 
 Every detail can be customized in the `config.yml` — from detection radius to particles, cooldowns, and seed mappings! ⚙️
 
@@ -28,6 +28,7 @@ Every detail can be customized in the `config.yml` — from detection radius to 
 - Tropical Fish 🐠 ← *Beetroot Seeds* 🥬  
 
 ✅ Bred tropical fish inherit a parent's pattern & colors 🎨  
+✅ Successful breeding drops experience, matching vanilla (configurable, capped at vanilla's 1–7) ✨  
 
 ✅ Advanced controls: debug logging, max tracked fish, breeding success chance  
 ✅ Clean, modern multi-class code structure and JavaDocs 🛠️  
@@ -47,8 +48,9 @@ Here’s an example `config.yml` with full customization options:
 
 settings:
   detection-radius: 5.0
-  breeding-timeout-seconds: 300
-  breeding-cooldown-minutes: 3
+  breeding-timeout-seconds: 30
+  breeding-cooldown-minutes: 5
+  breeding-experience: 7
   enable-particles: true
   particle-count: 5
 
