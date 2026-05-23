@@ -1,7 +1,6 @@
 package com.mrsuffix.fishmating.utils;
 
 import org.bukkit.GameMode;
-import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -25,14 +24,20 @@ public final class PlayerProximityUtil {
             return true; // check disabled
         }
         double radiusSq = radius * radius;
-        Location origin = entity.getLocation();
-        // Same-world players only; distanceSquared avoids the per-player sqrt and never
-        // throws (a cross-world comparison can't happen here).
+        // Read raw coordinates rather than getLocation() to avoid allocating a Location
+        // per entity/player on this per-fish, per-tick path. getWorld().getPlayers() is
+        // same-world only, so squared distance is safe and skips the per-player sqrt.
+        double ex = entity.getX();
+        double ey = entity.getY();
+        double ez = entity.getZ();
         for (Player player : entity.getWorld().getPlayers()) {
             if (player.getGameMode() == GameMode.SPECTATOR) {
                 continue;
             }
-            if (player.getLocation().distanceSquared(origin) <= radiusSq) {
+            double dx = player.getX() - ex;
+            double dy = player.getY() - ey;
+            double dz = player.getZ() - ez;
+            if (dx * dx + dy * dy + dz * dz <= radiusSq) {
                 return true;
             }
         }
