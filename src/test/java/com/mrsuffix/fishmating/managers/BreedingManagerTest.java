@@ -15,6 +15,7 @@ import org.mockbukkit.mockbukkit.ServerMock;
 import org.mockbukkit.mockbukkit.world.WorldMock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -119,6 +120,28 @@ class BreedingManagerTest {
         runBreedingCheck();
 
         assertEquals(2, breedingManager.getActiveBreedingPairCount());
+    }
+
+    @Test
+    @DisplayName("A bred newborn is placed on the breeding cooldown")
+    void newbornIsOnBreedingCooldown() {
+        WorldMock world = server.addSimpleWorld("w");
+        Entity p1 = spawnReadySalmon(world, 0, 0);
+        Entity p2 = spawnReadySalmon(world, 2, 0);
+
+        // Breeding check fires at tick 20 and spawns the baby 40 ticks later.
+        server.getScheduler().performTicks(60L);
+
+        Entity baby = world.getEntitiesByClass(org.bukkit.entity.Salmon.class).stream()
+                .filter(f -> !f.getUniqueId().equals(p1.getUniqueId()))
+                .filter(f -> !f.getUniqueId().equals(p2.getUniqueId()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(baby, "expected a baby salmon to spawn");
+
+        int cooldown = plugin.getConfigManager().getBreedingCooldownMinutes();
+        assertFalse(plugin.getFishManager().getFishData(baby).canBreed(cooldown),
+                "a freshly bred fish should be on cooldown, not immediately breedable");
     }
 
     @Test
