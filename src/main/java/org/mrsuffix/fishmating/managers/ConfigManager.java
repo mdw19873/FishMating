@@ -21,9 +21,13 @@ public class ConfigManager {
     private double detectionRadius;
     private int breedingTimeoutSeconds;
     private int breedingCooldownMinutes;
+    private int breedingExperience;
     private boolean enableParticles;
     private int particleCount;
     private int maxTrackedFish;
+
+    /** Hard ceiling on breeding XP so it can never exceed vanilla mob breeding (1-7). */
+    private static final int MAX_BREEDING_EXPERIENCE = 7;
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -42,7 +46,10 @@ public class ConfigManager {
             // Load basic settings
             detectionRadius = plugin.getConfig().getDouble("settings.detection-radius", 5.0);
             breedingTimeoutSeconds = plugin.getConfig().getInt("settings.breeding-timeout-seconds", 30);
-            breedingCooldownMinutes = plugin.getConfig().getInt("settings.breeding-cooldown-minutes", 3);
+            breedingCooldownMinutes = plugin.getConfig().getInt("settings.breeding-cooldown-minutes", 5);
+            // Clamp to [0, 7]: never award more than vanilla, and treat negatives as "off".
+            int configuredExperience = plugin.getConfig().getInt("settings.breeding-experience", MAX_BREEDING_EXPERIENCE);
+            breedingExperience = Math.max(0, Math.min(MAX_BREEDING_EXPERIENCE, configuredExperience));
             enableParticles = plugin.getConfig().getBoolean("settings.enable-particles", true);
             particleCount = plugin.getConfig().getInt("settings.particle-count", 5);
             maxTrackedFish = plugin.getConfig().getInt("advanced.max-tracked-fish", 1000);
@@ -114,6 +121,8 @@ public class ConfigManager {
     public double getDetectionRadius() { return detectionRadius; }
     public int getBreedingTimeoutSeconds() { return breedingTimeoutSeconds; }
     public int getBreedingCooldownMinutes() { return breedingCooldownMinutes; }
+    /** @return XP to award on a successful breed (random 1..this); 0 disables it. Clamped to 0-7. */
+    public int getBreedingExperience() { return breedingExperience; }
     public boolean isParticlesEnabled() { return enableParticles; }
     public int getParticleCount() { return particleCount; }
     public int getMaxTrackedFish() { return maxTrackedFish; }

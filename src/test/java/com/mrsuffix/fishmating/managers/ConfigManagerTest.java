@@ -40,9 +40,32 @@ class ConfigManagerTest {
     void loadsDefaultSettings() {
         assertEquals(5.0, config.getDetectionRadius());
         assertEquals(30, config.getBreedingTimeoutSeconds());
-        assertEquals(3, config.getBreedingCooldownMinutes());
+        assertEquals(5, config.getBreedingCooldownMinutes());
+        assertEquals(7, config.getBreedingExperience());
         assertTrue(config.isParticlesEnabled());
         assertEquals(5, config.getParticleCount());
+    }
+
+    @Test
+    @DisplayName("breeding-experience is clamped to the vanilla ceiling of 7")
+    void breedingExperienceIsCappedAtVanilla() {
+        plugin.getConfig().set("settings.breeding-experience", 100);
+        plugin.saveConfig();
+
+        config.loadConfiguration();
+
+        assertEquals(7, config.getBreedingExperience());
+    }
+
+    @Test
+    @DisplayName("A negative breeding-experience is clamped to 0 (disabled)")
+    void negativeBreedingExperienceIsClampedToZero() {
+        plugin.getConfig().set("settings.breeding-experience", -5);
+        plugin.saveConfig();
+
+        config.loadConfiguration();
+
+        assertEquals(0, config.getBreedingExperience());
     }
 
     @Test

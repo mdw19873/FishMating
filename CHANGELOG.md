@@ -6,9 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Successful breeding now drops experience at the baby, mirroring vanilla mob breeding.
+  The amount is a random 1 up to `settings.breeding-experience` (default 7), hard-capped
+  at vanilla's 7; set it to 0 to disable.
+
 ### Changed
 - Newly bred fish now start on the breeding cooldown, just like their parents, so a
   player can't chain-breed offspring to bypass the cooldown.
+- Default `breeding-cooldown-minutes` raised from 3 to 5, matching vanilla animal breeding.
 
 ## [1.1.0] - 2026-05-20
 ### Added

@@ -9,6 +9,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.TropicalFish;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -202,11 +203,31 @@ public class BreedingManager {
                 ParticleUtils.showBirthParticles(spawnLocation);
             }
 
+            // Award breeding experience at the baby, mirroring vanilla mob breeding
+            // (a random amount up to the configured, vanilla-capped maximum).
+            awardBreedingExperience(spawnLocation);
+
             plugin.getLogger().fine(() -> "Baby fish spawned at " + spawnLocation);
 
         } catch (Exception e) {
             plugin.getLogger().warning("Error spawning baby fish: " + e.getMessage());
         }
+    }
+
+    /**
+     * Drops experience at the given location for a successful breed, matching vanilla
+     * mob breeding which awards a random 1-7 XP. The maximum is configurable but capped
+     * at vanilla; a configured maximum of 0 disables the reward entirely.
+     *
+     * @param location Where to spawn the experience orb (the baby's location)
+     */
+    private void awardBreedingExperience(Location location) {
+        int max = plugin.getConfigManager().getBreedingExperience();
+        if (max <= 0) {
+            return;
+        }
+        int amount = ThreadLocalRandom.current().nextInt(max) + 1; // 1..max inclusive
+        location.getWorld().spawn(location, ExperienceOrb.class, orb -> orb.setExperience(amount));
     }
 
     /**
