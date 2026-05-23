@@ -31,6 +31,7 @@ public class ConfigManager {
     private double babyScale;
     private int growthDurationMinutes;
     private boolean requirePlayerThrownSeeds;
+    private double requirePlayerWithin;
 
     /** Hard ceiling on breeding XP so it can never exceed vanilla mob breeding (1-7). */
     private static final int MAX_BREEDING_EXPERIENCE = 7;
@@ -80,6 +81,10 @@ public class ConfigManager {
             // When on, only player-thrown seeds attract fish; dispenser/dropper-spawned
             // seeds are ignored, which blocks fully automated breeding farms.
             requirePlayerThrownSeeds = plugin.getConfig().getBoolean("advanced.require-player-thrown-seeds", true);
+
+            // Require a player within this many blocks for fish to seek seeds or breed;
+            // 0 (or negative) disables the check. Blocks unattended/chunk-loader farms.
+            requirePlayerWithin = Math.max(0.0, plugin.getConfig().getDouble("advanced.require-player-within", 0.0));
 
             // Load fish-seed mappings
             fishSeedMappings.clear();
@@ -164,5 +169,7 @@ public class ConfigManager {
     public int getGrowthDurationMinutes() { return growthDurationMinutes; }
     /** @return whether only player-thrown seeds attract fish (blocks dispenser automation). */
     public boolean isRequirePlayerThrownSeeds() { return requirePlayerThrownSeeds; }
+    /** @return radius (blocks) a player must be within for fish to seek/breed; 0 disables. */
+    public double getRequirePlayerWithin() { return requirePlayerWithin; }
     public Map<EntityType, Material> getFishSeedMappings() { return new HashMap<>(fishSeedMappings); }
 }

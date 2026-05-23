@@ -52,3 +52,7 @@ advanced:
   # Only seeds thrown by a player attract fish. Blocks automated (dispenser/dropper)
   # breeding farms. Set false to let any dropped seed work.
   require-player-thrown-seeds: true
+
+  # Require a player within this many blocks for fish to seek seeds or breed. Blocks
+  # unattended/chunk-loader farms. 0 disables the check (no presence required).
+  require-player-within: 0

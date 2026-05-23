@@ -4,6 +4,7 @@ import com.mrsuffix.fishmating.FishMatingPlugin;
 import com.mrsuffix.fishmating.models.BreedingPair;
 import com.mrsuffix.fishmating.models.FishData;
 import com.mrsuffix.fishmating.utils.ParticleUtils;
+import com.mrsuffix.fishmating.utils.PlayerProximityUtil;
 import com.mrsuffix.fishmating.utils.ScaleUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -72,6 +73,10 @@ public class BreedingManager {
                 }
                 Entity entity = fishData.getEntity();
                 if (!entity.isValid() || entity.isDead() || isInBreedingPair(entity)) {
+                    continue;
+                }
+                // Require a player nearby (if configured) so fish don't breed unattended.
+                if (!PlayerProximityUtil.playerWithin(entity, config.getRequirePlayerWithin())) {
                     continue;
                 }
                 candidates

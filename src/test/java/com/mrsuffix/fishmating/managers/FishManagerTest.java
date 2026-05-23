@@ -100,6 +100,41 @@ class FishManagerTest {
     }
 
     @Test
+    @DisplayName("With require-player-within set, a fish won't eat a seed if no player is near")
+    void seekingBlockedWithoutNearbyPlayer() {
+        plugin.getConfig().set("advanced.require-player-within", 10.0);
+        plugin.saveConfig();
+        plugin.getConfigManager().loadConfiguration();
+
+        waterAt(0, 64, 0);
+        dropSeed(Material.WHEAT_SEEDS, 3, 0, 64, 0);
+        Entity salmon = trackedSalmon(0, 64, 0);
+
+        runFishUpdate();
+
+        assertFalse(fishManager.getFishData(salmon).isBreedingReady(),
+                "with no nearby player, the fish should not seek or eat the seed");
+    }
+
+    @Test
+    @DisplayName("With require-player-within set, a nearby player lets the fish eat the seed")
+    void seekingAllowedWithNearbyPlayer() {
+        plugin.getConfig().set("advanced.require-player-within", 10.0);
+        plugin.saveConfig();
+        plugin.getConfigManager().loadConfiguration();
+
+        waterAt(0, 64, 0);
+        dropSeed(Material.WHEAT_SEEDS, 3, 0, 64, 0);
+        Entity salmon = trackedSalmon(0, 64, 0);
+        server.addPlayer().teleport(new Location(world, 0, 64, 0));
+
+        runFishUpdate();
+
+        assertTrue(fishManager.getFishData(salmon).isBreedingReady(),
+                "with a nearby player, the fish should eat the seed and become breeding-ready");
+    }
+
+    @Test
     @DisplayName("Eating an adjacent in-water seed decrements the stack and sets breeding-ready")
     void consumesAdjacentSeedAndDecrementsStack() {
         waterAt(0, 64, 0);

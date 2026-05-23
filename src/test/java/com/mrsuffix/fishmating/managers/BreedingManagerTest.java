@@ -163,6 +163,55 @@ class BreedingManagerTest {
         assertTrue(xp >= 1 && xp <= 7, "breeding XP should be within vanilla's 1-7, was " + xp);
     }
 
+    private void setRequirePlayerWithin(double radius) {
+        plugin.getConfig().set("advanced.require-player-within", radius);
+        plugin.saveConfig();
+        plugin.getConfigManager().loadConfiguration();
+    }
+
+    @Test
+    @DisplayName("With require-player-within set, ready fish don't pair if no player is near")
+    void breedingBlockedWithoutNearbyPlayer() {
+        setRequirePlayerWithin(10.0);
+        WorldMock world = server.addSimpleWorld("w");
+        spawnReadySalmon(world, 0, 0);
+        spawnReadySalmon(world, 2, 0);
+
+        runBreedingCheck();
+
+        assertEquals(0, breedingManager.getActiveBreedingPairCount());
+    }
+
+    @Test
+    @DisplayName("With require-player-within set, a nearby player allows breeding")
+    void breedingAllowedWithNearbyPlayer() {
+        setRequirePlayerWithin(10.0);
+        WorldMock world = server.addSimpleWorld("w");
+        spawnReadySalmon(world, 0, 0);
+        spawnReadySalmon(world, 2, 0);
+        server.addPlayer().teleport(new Location(world, 1, 64, 0)); // between the two fish
+
+        runBreedingCheck();
+
+        assertEquals(1, breedingManager.getActiveBreedingPairCount());
+    }
+
+    @Test
+    @DisplayName("A spectator does not count as a nearby player for breeding")
+    void spectatorDoesNotCountAsNearby() {
+        setRequirePlayerWithin(10.0);
+        WorldMock world = server.addSimpleWorld("w");
+        spawnReadySalmon(world, 0, 0);
+        spawnReadySalmon(world, 2, 0);
+        var player = server.addPlayer();
+        player.teleport(new Location(world, 1, 64, 0));
+        player.setGameMode(org.bukkit.GameMode.SPECTATOR);
+
+        runBreedingCheck();
+
+        assertEquals(0, breedingManager.getActiveBreedingPairCount());
+    }
+
     private Entity findBabySalmon(WorldMock world, Entity parent1, Entity parent2) {
         return world.getEntitiesByClass(org.bukkit.entity.Salmon.class).stream()
                 .map(f -> (Entity) f)

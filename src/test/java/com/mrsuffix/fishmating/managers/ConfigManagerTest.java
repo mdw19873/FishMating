@@ -83,6 +83,12 @@ class ConfigManagerTest {
     }
 
     @Test
+    @DisplayName("require-player-within defaults to 0 (disabled)")
+    void requirePlayerWithinDefaultsZero() {
+        assertEquals(0.0, config.getRequirePlayerWithin());
+    }
+
+    @Test
     @DisplayName("baby-scale is clamped to [0.1, 1.0] and growth-duration to at least 1")
     void growthValuesAreClamped() {
         plugin.getConfig().set("advanced.baby-scale", 5.0);

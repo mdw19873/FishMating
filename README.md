@@ -75,6 +75,8 @@ advanced:
   breeding-success-rate: 1.0
   # Only player-thrown seeds attract fish (blocks dispenser/dropper auto-farms)
   require-player-thrown-seeds: true
+  # Require a player within N blocks for fish to seek/breed; 0 disables
+  require-player-within: 0
 ````
 
 Everything from detection range to particle effects and breeding logic can be tweaked! 🎛️
@@ -93,6 +95,10 @@ Everything from detection range to particle effects and breeding logic can be tw
 > **`require-player-thrown-seeds`** (default **true**) makes only seeds *thrown by a
 > player* attract fish, so dispenser/dropper-fed contraptions can't run automated
 > breeding/XP farms. Set it to `false` to let any dropped seed work.
+
+> **`require-player-within`** (default **0**, disabled) requires a non-spectator player
+> within the given block radius for fish to seek seeds or breed. Set a radius (e.g. `32`)
+> to stop unattended / chunk-loader farms from running while no one is around.
 
 ---
 

@@ -3,6 +3,7 @@ package com.mrsuffix.fishmating.managers;
 import com.mrsuffix.fishmating.FishMatingPlugin;
 import com.mrsuffix.fishmating.models.FishData;
 import com.mrsuffix.fishmating.utils.ParticleUtils;
+import com.mrsuffix.fishmating.utils.PlayerProximityUtil;
 import com.mrsuffix.fishmating.utils.ScaleUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -121,7 +122,9 @@ public class FishManager {
 
         // Find and move toward seeds if not breeding ready. A fish that isn't full-grown
         // yet can't seek or eat seeds, so it can't become breeding-ready until it matures.
-        if (fullGrown && !fishData.isBreedingReady() && fishData.canBreed(config.getBreedingCooldownMinutes())) {
+        // Seeking is also gated on a nearby player so unattended fish don't farm seeds.
+        if (fullGrown && !fishData.isBreedingReady() && fishData.canBreed(config.getBreedingCooldownMinutes())
+                && PlayerProximityUtil.playerWithin(fish, config.getRequirePlayerWithin())) {
             handleSeedSeeking(fishData, config);
         }
     }
