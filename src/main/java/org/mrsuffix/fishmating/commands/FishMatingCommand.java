@@ -6,6 +6,7 @@ import com.mrsuffix.fishmating.models.FishData;
 import com.mrsuffix.fishmating.utils.ScaleUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -51,6 +52,13 @@ public class FishMatingCommand implements TabExecutor {
     private static final List<String> SUBCOMMANDS =
             List.of("reload", "status", "nearby", "config", "grow");
 
+    /** Colour for a section heading. */
+    private static final NamedTextColor HEADER = NamedTextColor.AQUA;
+    /** Colour for a label (the "key" half of a line). */
+    private static final NamedTextColor LABEL = NamedTextColor.GRAY;
+    /** Colour for a value (the "value" half of a line). */
+    private static final NamedTextColor VALUE = NamedTextColor.WHITE;
+
     private final FishMatingPlugin plugin;
 
     public FishMatingCommand(FishMatingPlugin plugin) {
@@ -86,6 +94,20 @@ public class FishMatingCommand implements TabExecutor {
                 "Usage: /" + label + " <reload|status|nearby|config|grow>", NamedTextColor.YELLOW));
     }
 
+    /** Sends a bold section heading. */
+    private void sendHeader(CommandSender sender, String text) {
+        sender.sendMessage(Component.text(text, HEADER, TextDecoration.BOLD));
+    }
+
+    /**
+     * Sends an indented "label: value" line with the label and value in distinct colours
+     * so the two halves are easy to scan apart.
+     */
+    private void sendEntry(CommandSender sender, String indent, String label, Object value) {
+        sender.sendMessage(Component.text(indent + label + ": ", LABEL)
+                .append(Component.text(String.valueOf(value), VALUE)));
+    }
+
     private void handleReload(CommandSender sender) {
         plugin.getConfigManager().loadConfiguration();
         sender.sendMessage(Component.text(
@@ -118,22 +140,16 @@ public class FishMatingCommand implements TabExecutor {
         }
 
         int cap = plugin.getConfigManager().getMaxTrackedFish();
-        sender.sendMessage(Component.text("FishMating status", NamedTextColor.AQUA));
-        sender.sendMessage(Component.text(
-                "  Tracked fish: " + total + " / " + cap, NamedTextColor.GRAY));
-        if (total > 0) {
-            for (Map.Entry<EntityType, Integer> e : perType.entrySet()) {
-                sender.sendMessage(Component.text(
-                        "    " + e.getKey().name().toLowerCase(Locale.ROOT) + ": " + e.getValue(),
-                        NamedTextColor.GRAY));
-            }
+        sendHeader(sender, "FishMating status");
+        sendEntry(sender, "  ", "Tracked fish", total + " / " + cap);
+        for (Map.Entry<EntityType, Integer> e : perType.entrySet()) {
+            sendEntry(sender, "    ", e.getKey().name().toLowerCase(Locale.ROOT), e.getValue());
         }
-        sender.sendMessage(Component.text("  Breeding-ready: " + breedingReady, NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  Seeking a seed: " + seeking, NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  Growing (immature): " + growing, NamedTextColor.GRAY));
-        sender.sendMessage(Component.text(
-                "  Active breeding pairs: " + plugin.getBreedingManager().getActiveBreedingPairCount(),
-                NamedTextColor.GRAY));
+        sendEntry(sender, "  ", "Breeding-ready", breedingReady);
+        sendEntry(sender, "  ", "Seeking a seed", seeking);
+        sendEntry(sender, "  ", "Growing (immature)", growing);
+        sendEntry(sender, "  ", "Active breeding pairs",
+                plugin.getBreedingManager().getActiveBreedingPairCount());
     }
 
     private void handleNearby(CommandSender sender, String[] args) {
@@ -175,14 +191,14 @@ public class FishMatingCommand implements TabExecutor {
         }
         matches.sort((a, b) -> Double.compare(a.distSq, b.distSq));
 
-        sender.sendMessage(Component.text(
-                "Tracked fish within " + String.format(Locale.ROOT, "%.1f", radius)
-                        + " blocks: " + matches.size(), NamedTextColor.AQUA));
+        sender.sendMessage(Component.text("Tracked fish within ", HEADER)
+                .append(Component.text(String.format(Locale.ROOT, "%.1f", radius) + " blocks", VALUE))
+                .append(Component.text(": ", HEADER))
+                .append(Component.text(String.valueOf(matches.size()), VALUE)));
 
         int shown = Math.min(matches.size(), MAX_NEARBY_LINES);
         for (int i = 0; i < shown; i++) {
-            sender.sendMessage(Component.text("  " + describeFish(matches.get(i), config),
-                    NamedTextColor.GRAY));
+            sender.sendMessage(describeFish(matches.get(i), config));
         }
         if (matches.size() > shown) {
             sender.sendMessage(Component.text(
@@ -190,8 +206,12 @@ public class FishMatingCommand implements TabExecutor {
         }
     }
 
-    /** Builds the one-line description used by {@code nearby}. */
-    private String describeFish(Entry entry, ConfigManager config) {
+    /**
+     * Builds the one-line component used by {@code nearby}: the fish type stands out in
+     * {@link #VALUE}, the distance/maturity sit in {@link #LABEL}, and the breeding state
+     * is coloured by kind (ready = green, cooldown = yellow, seeking = aqua, idle = gray).
+     */
+    private Component describeFish(Entry entry, ConfigManager config) {
         FishData data = entry.data;
         Entity entity = data.getEntity();
         String type = entity.getType().name().toLowerCase(Locale.ROOT);
@@ -205,45 +225,52 @@ public class FishMatingCommand implements TabExecutor {
         }
 
         String state;
+        NamedTextColor stateColor;
         long now = System.currentTimeMillis();
         if (data.isBreedingReady()) {
             long left = data.getBreedingReadyTime()
                     + config.getBreedingTimeoutSeconds() * 1000L - now;
             state = "breeding-ready (" + Math.max(0, left / 1000) + "s left)";
+            stateColor = NamedTextColor.GREEN;
         } else if (!data.canBreed(config.getBreedingCooldownMinutes())) {
             long left = data.getLastBreedingTime()
                     + config.getBreedingCooldownMinutes() * 60_000L - now;
             state = "cooldown (" + Math.max(0, left / 1000) + "s left)";
+            stateColor = NamedTextColor.YELLOW;
         } else if (data.getTargetSeed() != null) {
             state = "seeking";
+            stateColor = NamedTextColor.AQUA;
         } else {
             state = "idle";
+            stateColor = NamedTextColor.GRAY;
         }
 
-        return type + " — " + distance + "b — " + maturity + " — " + state;
+        return Component.text("  • ", NamedTextColor.DARK_GRAY)
+                .append(Component.text(type, VALUE))
+                .append(Component.text("  " + distance + "b  " + maturity + "  ", LABEL))
+                .append(Component.text(state, stateColor));
     }
 
     private void handleConfig(CommandSender sender) {
         ConfigManager c = plugin.getConfigManager();
-        sender.sendMessage(Component.text("FishMating effective config", NamedTextColor.AQUA));
-        sender.sendMessage(Component.text("  detection-radius: " + c.getDetectionRadius(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  breeding-timeout-seconds: " + c.getBreedingTimeoutSeconds(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  breeding-cooldown-minutes: " + c.getBreedingCooldownMinutes(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  breeding-experience: " + c.getBreedingExperience(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  enable-particles: " + c.isParticlesEnabled(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  particle-count: " + c.getParticleCount(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  max-tracked-fish: " + c.getMaxTrackedFish(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  natural-growth: " + c.isNaturalGrowth(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  baby-scale: " + c.getBabyScale(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  growth-duration-minutes: " + c.getGrowthDurationMinutes(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  breeding-success-rate: " + c.getBreedingSuccessRate(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  require-player-thrown-seeds: " + c.isRequirePlayerThrownSeeds(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  require-player-within: " + c.getRequirePlayerWithin(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  worldguard-integration: " + c.isWorldGuardIntegration(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  inherit-persistence: " + c.isInheritPersistence(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  debug-logging: " + c.isDebugLogging(), NamedTextColor.GRAY));
-        sender.sendMessage(Component.text("  fish-mappings: " + describeMappings(c.getFishSeedMappings()),
-                NamedTextColor.GRAY));
+        sendHeader(sender, "FishMating effective config");
+        sendEntry(sender, "  ", "detection-radius", c.getDetectionRadius());
+        sendEntry(sender, "  ", "breeding-timeout-seconds", c.getBreedingTimeoutSeconds());
+        sendEntry(sender, "  ", "breeding-cooldown-minutes", c.getBreedingCooldownMinutes());
+        sendEntry(sender, "  ", "breeding-experience", c.getBreedingExperience());
+        sendEntry(sender, "  ", "enable-particles", c.isParticlesEnabled());
+        sendEntry(sender, "  ", "particle-count", c.getParticleCount());
+        sendEntry(sender, "  ", "max-tracked-fish", c.getMaxTrackedFish());
+        sendEntry(sender, "  ", "natural-growth", c.isNaturalGrowth());
+        sendEntry(sender, "  ", "baby-scale", c.getBabyScale());
+        sendEntry(sender, "  ", "growth-duration-minutes", c.getGrowthDurationMinutes());
+        sendEntry(sender, "  ", "breeding-success-rate", c.getBreedingSuccessRate());
+        sendEntry(sender, "  ", "require-player-thrown-seeds", c.isRequirePlayerThrownSeeds());
+        sendEntry(sender, "  ", "require-player-within", c.getRequirePlayerWithin());
+        sendEntry(sender, "  ", "worldguard-integration", c.isWorldGuardIntegration());
+        sendEntry(sender, "  ", "inherit-persistence", c.isInheritPersistence());
+        sendEntry(sender, "  ", "debug-logging", c.isDebugLogging());
+        sendEntry(sender, "  ", "fish-mappings", describeMappings(c.getFishSeedMappings()));
     }
 
     private String describeMappings(Map<EntityType, ?> mappings) {

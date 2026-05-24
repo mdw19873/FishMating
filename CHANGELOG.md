@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- The `/fishmating status`, `nearby`, and `config` command output now colours the label
+  (key) and value distinctly for easier scanning, with a bold section heading. In `nearby`,
+  each fish's breeding state is colour-coded (ready = green, cooldown = yellow, seeking =
+  aqua, idle = gray).
 
 ## [1.5.0] - 2026-05-24
 ### Added

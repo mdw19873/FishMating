@@ -2,6 +2,7 @@ package com.mrsuffix.fishmating.commands;
 
 import com.mrsuffix.fishmating.FishMatingPlugin;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -63,6 +64,17 @@ class FishMatingCommandTest {
             sb.append(PlainTextComponentSerializer.plainText().serialize(next)).append('\n');
         }
         return sb.toString();
+    }
+
+    /** Returns the first queued component whose plain text contains {@code text}. */
+    private Component findMessage(MessageTarget target, String text) {
+        Component next;
+        while ((next = target.nextComponentMessage()) != null) {
+            if (PlainTextComponentSerializer.plainText().serialize(next).contains(text)) {
+                return next;
+            }
+        }
+        return null;
     }
 
     /** Spawns a fish of the given type and registers it with the manager (tracked). */
@@ -165,6 +177,23 @@ class FishMatingCommandTest {
     }
 
     @Test
+    @DisplayName("nearby colours a breeding-ready fish's state green")
+    void nearbyColoursBreedingReadyState() {
+        PlayerMock player = opPlayer();
+        player.teleport(new Location(world, 0, 64, 0));
+        Entity salmon = trackFish(EntityType.SALMON, 1, 64, 0);
+        plugin.getFishManager().getFishData(salmon).setBreedingReady(true);
+
+        server.execute("fishmating", player, "nearby");
+
+        Component line = findMessage(player, "breeding-ready");
+        boolean greenState = line.children().stream()
+                .anyMatch(c -> NamedTextColor.GREEN.equals(c.color())
+                        && PlainTextComponentSerializer.plainText().serialize(c).contains("breeding-ready"));
+        assertTrue(greenState, "breeding-ready state should be coloured green");
+    }
+
+    @Test
     @DisplayName("nearby from the console is rejected (players only)")
     void nearbyConsoleRejected() {
         ConsoleCommandSenderMock console = server.getConsoleSender();
@@ -192,6 +221,20 @@ class FishMatingCommandTest {
         assertTrue(out.contains("detection-radius: 5.0"), out);
         assertTrue(out.contains("max-tracked-fish: 1000"), out);
         assertTrue(out.contains("breeding-cooldown-minutes: 5"), out);
+    }
+
+    @Test
+    @DisplayName("config renders the label and value in distinct colours")
+    void configLabelAndValueColoursDiffer() {
+        PlayerMock player = opPlayer();
+        server.execute("fishmating", player, "config");
+
+        Component line = findMessage(player, "detection-radius");
+        // Label half is gray; the value is appended as a white child.
+        assertEquals(NamedTextColor.GRAY, line.color(), "label should be gray");
+        boolean whiteValue = line.children().stream()
+                .anyMatch(c -> NamedTextColor.WHITE.equals(c.color()));
+        assertTrue(whiteValue, "value should be white");
     }
 
     // ----- grow -------------------------------------------------------------------
