@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.5.1] - 2026-05-24
 ### Changed
 - The `/fishmating status`, `nearby`, and `config` command output now colours the label
   (key) and value distinctly for easier scanning, with a bold section heading. In `nearby`,
@@ -114,7 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Breeding-pair selection no longer skips fish.
 - Config loading is resilient to a missing `fish-mappings` section or a blank seed value.
 
-[Unreleased]: https://github.com/mdw19873/FishMating/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/mdw19873/FishMating/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/mdw19873/FishMating/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/mdw19873/FishMating/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/mdw19873/FishMating/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/mdw19873/FishMating/compare/v1.3.0...v1.4.0
