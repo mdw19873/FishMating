@@ -10,13 +10,16 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.player.PlayerBucketEntityEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.ServerMock;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockbukkit.mockbukkit.entity.SimpleEntityMock;
 import org.mockbukkit.mockbukkit.world.WorldMock;
 import org.bukkit.Material;
@@ -117,5 +120,38 @@ class EntityListenerTest {
         server.getPluginManager().callEvent(new EntitiesLoadEvent(chunk, List.of(notAFish)));
 
         assertTrue(fishManager.getTrackedFish().isEmpty());
+    }
+
+    /** Builds a bucket-capture event for the given entity (water bucket -> fish bucket). */
+    private PlayerBucketEntityEvent bucketEvent(Entity entity) {
+        PlayerMock player = server.addPlayer();
+        return new PlayerBucketEntityEvent(player, entity,
+                new ItemStack(Material.WATER_BUCKET), new ItemStack(Material.SALMON_BUCKET),
+                EquipmentSlot.HAND);
+    }
+
+    @Test
+    @DisplayName("Bucketing a full-grown mapped fish is allowed")
+    void bucketingAdultFishAllowed() {
+        // MockBukkit reports no scale attribute, so the fish reads as full-grown; the
+        // immature-cancel branch relies on ScaleUtil.isFullGrown (unit-tested) + the
+        // floor/ceiling compile guards, as with suppressImmatureFishDrops.
+        Entity salmon = world.spawnEntity(new Location(world, 0, 64, 0), EntityType.SALMON);
+
+        PlayerBucketEntityEvent event = bucketEvent(salmon);
+        server.getPluginManager().callEvent(event);
+
+        assertFalse(event.isCancelled(), "an adult fish should be bucketable");
+    }
+
+    @Test
+    @DisplayName("Bucketing a non-mapped entity is ignored")
+    void bucketingNonFishIgnored() {
+        Entity notAFish = new SimpleEntityMock(server); // type UNKNOWN
+
+        PlayerBucketEntityEvent event = bucketEvent(notAFish);
+        server.getPluginManager().callEvent(event);
+
+        assertFalse(event.isCancelled(), "non-mapped entities are not the plugin's concern");
     }
 }

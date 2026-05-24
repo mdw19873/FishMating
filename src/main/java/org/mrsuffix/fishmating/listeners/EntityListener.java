@@ -2,6 +2,8 @@ package com.mrsuffix.fishmating.listeners;
 
 import com.mrsuffix.fishmating.FishMatingPlugin;
 import com.mrsuffix.fishmating.utils.ScaleUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -10,6 +12,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
+import org.bukkit.event.player.PlayerBucketEntityEvent;
 
 /**
  * Handles entity-related events for fish tracking.
@@ -92,6 +95,40 @@ public class EntityListener implements Listener {
             }
         } catch (Exception e) {
             plugin.getLogger().warning("Error suppressing immature fish drops: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Anti-abuse: prevents capturing a not-yet-grown fish in a bucket.
+     *
+     * <p>Vanilla fish buckets do not persist the {@code scale} attribute, so a bucketed
+     * baby would respawn at full size on placement — letting a player shortcut the
+     * growth-time gate (breed → bucket the baby → place an instant adult). Blocking the
+     * capture closes that vector; the baby simply grows where it is. Adults bucket
+     * normally, and when {@code natural-growth} is off no fish is ever shrunk, so every
+     * fish reads full-grown here and this is a no-op.
+     *
+     * <p>Runs at {@link EventPriority#HIGH} (not MONITOR) because it cancels the event;
+     * {@code ignoreCancelled} leaves an already-cancelled capture alone.
+     *
+     * @param event The bucket-entity event
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBucketImmatureFish(PlayerBucketEntityEvent event) {
+        try {
+            Entity entity = event.getEntity();
+            if (plugin.getConfigManager().getSeedForFish(entity.getType()) == null) {
+                return;
+            }
+            if (!ScaleUtil.isFullGrown(entity)) {
+                event.setCancelled(true);
+                event.getPlayer().sendMessage(Component.text(
+                        "This fish is still growing — let it mature before bucketing it.",
+                        NamedTextColor.RED));
+                plugin.getLogger().fine(() -> "Blocked bucketing of immature fish: " + entity.getType());
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Error handling fish bucket: " + e.getMessage());
         }
     }
 

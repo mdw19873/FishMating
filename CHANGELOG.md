@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Closed a growth-gate bypass: a not-yet-grown fish can no longer be captured in a bucket.
+  Vanilla fish buckets don't persist the `scale` attribute, so a bucketed baby would respawn
+  at full size on placement, letting a player skip the growth-time gate (breed → bucket the
+  baby → place an instant adult). Bucketing an immature fish is now blocked with a message;
+  the baby grows where it is. Adults bucket normally, and this is a no-op when
+  `natural-growth` is off (no fish is ever shrunk, so all read full-grown).
 
 ## [1.5.1] - 2026-05-24
 ### Changed
