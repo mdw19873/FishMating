@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- New read-only admin query sub-commands under `/fishmating` (alias `/fm`), all gated by
+  `fishmating.admin`:
+  - `status` — aggregate summary of the tracked fish: total vs `max-tracked-fish`, a
+    per-type breakdown, and counts of breeding-ready / seeking / still-growing fish, plus
+    the number of active breeding pairs.
+  - `nearby [radius]` — (players only) lists tracked fish near the caller with type,
+    distance, maturity, and breeding state. Radius defaults to `detection-radius` and is
+    capped at 64 blocks.
+  - `config` — dumps the live (post-clamp) configuration values to confirm what is in
+    effect after a reload.
+- New admin sub-command `/fishmating grow <radius|all>` (also `fishmating.admin`): forces
+  tracked fish to full size (scale 1.0). `all` grows every tracked fish (usable from the
+  console); `<radius>` (players only) grows those within range. Already-full-grown fish are
+  skipped so no redundant scale-update packets are sent.
 
 ## [1.4.1] - 2026-05-23
 ### Fixed

@@ -137,6 +137,10 @@ Everything from detection range to particle effects and breeding logic can be tw
 | Command | Description | Permission |
 |---------|-------------|------------|
 | `/fishmating reload` (alias `/fm`) | Reloads `config.yml` without a server restart | `fishmating.admin` |
+| `/fishmating status` | Summarises the tracked fish: total vs the cap, a per-type breakdown, and how many are breeding-ready, seeking a seed, or still growing, plus the active breeding-pair count | `fishmating.admin` |
+| `/fishmating nearby [radius]` | (Players only) Lists tracked fish near you with type, distance, maturity, and breeding state. Radius defaults to `detection-radius` and is capped at 64 | `fishmating.admin` |
+| `/fishmating config` | Prints the live (post-clamp) configuration values, so you can confirm what's actually in effect after a reload | `fishmating.admin` |
+| `/fishmating grow <radius\|all>` | Forces tracked fish to full size (scale 1.0). `all` grows every tracked fish (works from console); `<radius>` (players only) grows those within range. Already-grown fish are skipped | `fishmating.admin` |
 
 `fishmating.admin` defaults to **op**.
 

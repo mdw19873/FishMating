@@ -11,10 +11,10 @@ softdepend: [WorldGuard]
 commands:
   fishmating:
     description: FishMating administrative commands
-    usage: /fishmating reload
+    usage: /fishmating <reload|status|nearby|config|grow>
     aliases: [fm]
 
 permissions:
   fishmating.admin:
-    description: Allows reloading the FishMating configuration
+    description: Allows reloading the config and using the status/nearby/config/grow admin commands
     default: op
