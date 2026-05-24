@@ -257,4 +257,122 @@ class FishManagerTest {
 
         assertEquals(2, fishManager.getTrackedFish().size());
     }
+
+    // ----- event-driven attraction (attractFishToSeed) ----------------------------
+
+    @Test
+    @DisplayName("attractFishToSeed assigns the seed as the target of an eligible nearby fish")
+    void attractAssignsTargetToEligibleFish() {
+        waterAt(0, 64, 0);
+        Item seed = dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0);
+        Entity salmon = trackedSalmon(0, 64, 0);
+
+        fishManager.attractFishToSeed(seed);
+
+        assertSame(seed, fishManager.getFishData(salmon).getTargetSeed());
+    }
+
+    @Test
+    @DisplayName("attractFishToSeed skips a fish that is already breeding-ready")
+    void attractSkipsBreedingReadyFish() {
+        waterAt(0, 64, 0);
+        Item seed = dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0);
+        Entity salmon = trackedSalmon(0, 64, 0);
+        fishManager.getFishData(salmon).setBreedingReady(true);
+
+        fishManager.attractFishToSeed(seed);
+
+        assertNull(fishManager.getFishData(salmon).getTargetSeed());
+    }
+
+    @Test
+    @DisplayName("attractFishToSeed skips a fish still on breeding cooldown")
+    void attractSkipsFishOnCooldown() {
+        waterAt(0, 64, 0);
+        Item seed = dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0);
+        Entity salmon = trackedSalmon(0, 64, 0);
+        fishManager.getFishData(salmon).setLastBreedingTime(); // just bred -> on cooldown
+
+        fishManager.attractFishToSeed(seed);
+
+        assertNull(fishManager.getFishData(salmon).getTargetSeed());
+    }
+
+    @Test
+    @DisplayName("attractFishToSeed does not override a fish's existing valid target")
+    void attractDoesNotOverrideExistingTarget() {
+        waterAt(0, 64, 0);
+        Item first = dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0);
+        Item second = dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0);
+        Entity salmon = trackedSalmon(0, 64, 0);
+
+        fishManager.attractFishToSeed(first);
+        fishManager.attractFishToSeed(second);
+
+        assertSame(first, fishManager.getFishData(salmon).getTargetSeed(),
+                "a fish should commit to its first seed");
+    }
+
+    @Test
+    @DisplayName("The per-tick loop no longer polls: a seed never announced via event is ignored")
+    void updateLoopDoesNotPollForSeeds() {
+        // Unregister all plugin listeners so dropping the seed fires no attraction; only the
+        // fish-update task keeps running. If the loop still scanned for seeds the adjacent
+        // seed would be eaten — it must not be (discovery is now push-only via ItemDropListener).
+        org.bukkit.event.HandlerList.unregisterAll(plugin);
+
+        waterAt(0, 64, 0);
+        dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0);
+        Entity salmon = trackedSalmon(0, 64, 0);
+
+        runFishUpdate();
+
+        FishData data = fishManager.getFishData(salmon);
+        assertNull(data.getTargetSeed(), "the loop must not discover seeds on its own");
+        assertFalse(data.isBreedingReady());
+    }
+
+    // ----- transition rescan safety net -------------------------------------------
+
+    @Test
+    @DisplayName("Transition rescan: becoming eligible (player arrives) re-acquires a lingering seed")
+    void transitionRescanOnRisingEligibility() {
+        plugin.getConfig().set("advanced.require-player-within", 10.0);
+        plugin.saveConfig();
+        plugin.getConfigManager().loadConfiguration();
+
+        waterAt(0, 64, 0);
+        dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0); // seed present, but no player yet
+        Entity salmon = trackedSalmon(0, 64, 0);
+
+        runFishUpdate(); // not eligible (no player): wasEligible flips false, seed untouched
+        assertFalse(fishManager.getFishData(salmon).isBreedingReady());
+
+        server.addPlayer().teleport(new Location(world, 0, 64, 0));
+        runFishUpdate(); // rising edge -> one-shot rescan finds the lingering seed
+        runFishUpdate(); // and the fish reaches/consumes it
+
+        assertTrue(fishManager.getFishData(salmon).isBreedingReady(),
+                "a fish that becomes eligible next to a lingering seed should re-acquire it");
+    }
+
+    @Test
+    @DisplayName("Transition rescan: a fish whose target seed vanishes re-acquires another nearby seed")
+    void transitionRescanOnLostTarget() {
+        // No event-driven attraction: drive the target assignment and loss manually.
+        org.bukkit.event.HandlerList.unregisterAll(plugin);
+
+        waterAt(0, 64, 0);
+        Item eaten = dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0);
+        Item other = dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0);
+        Entity salmon = trackedSalmon(0, 64, 0);
+        FishData data = fishManager.getFishData(salmon);
+        data.setTargetSeed(eaten);
+        eaten.remove(); // another fish "ate" it -> target now invalid
+
+        runFishUpdate(); // clears the dead target -> lostTarget -> rescan picks the other seed
+
+        assertSame(other, data.getTargetSeed(),
+                "after losing its target the fish should re-acquire the other nearby seed");
+    }
 }

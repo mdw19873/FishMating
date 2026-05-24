@@ -12,6 +12,7 @@ public class FishData {
     private long breedingReadyTime;
     private long lastBreedingTime;
     private Entity targetSeed;
+    private boolean wasEligibleToSeek;
 
     public FishData(Entity entity) {
         this.entity = entity;
@@ -19,6 +20,9 @@ public class FishData {
         this.breedingReadyTime = 0;
         this.lastBreedingTime = 0;
         this.targetSeed = null;
+        // Default true so a freshly tracked adult is not seen as a fresh eligibility
+        // transition on its first update (avoids a one-shot rescan burst on enable/reload).
+        this.wasEligibleToSeek = true;
     }
 
     /**
@@ -84,6 +88,24 @@ public class FishData {
         if (lastBreedingTime == 0) return true;
         long cooldownMillis = cooldownMinutes * 60_000L;
         return System.currentTimeMillis() - lastBreedingTime >= cooldownMillis;
+    }
+
+    /**
+     * Whether the fish was eligible to seek a seed at the previous update. Loop bookkeeping
+     * used to detect the rising edge (just became eligible) so a one-shot transition rescan
+     * fires then rather than on every idle tick.
+     * @return the previous-update eligibility flag
+     */
+    public boolean wasEligibleToSeek() {
+        return wasEligibleToSeek;
+    }
+
+    /**
+     * Records the fish's current seek-eligibility for next-update edge detection.
+     * @param wasEligibleToSeek the current eligibility
+     */
+    public void setWasEligibleToSeek(boolean wasEligibleToSeek) {
+        this.wasEligibleToSeek = wasEligibleToSeek;
     }
 
     /**

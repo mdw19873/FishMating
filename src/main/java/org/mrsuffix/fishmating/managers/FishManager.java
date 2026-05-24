@@ -94,19 +94,15 @@ public class FishManager {
     private void updateFish(FishData fishData, ConfigManager config, boolean growthTick) {
         Entity fish = fishData.getEntity();
 
-        // Natural growth: read the scale once and reuse it for both growing the fish and
-        // the breeding-maturity check below. Growth advances per growth tick (not wall
-        // clock), so it pauses while the fish is unloaded and resumes from the persisted
-        // scale after a restart. The scale write happens only on a growth tick, but the
-        // maturity check reads every update.
-        boolean fullGrown = true;
-        if (config.isNaturalGrowth()) {
+        // Natural growth: advance the scale toward 1.0 on growth ticks (not wall clock), so
+        // growth pauses while the fish is unloaded and resumes from the persisted scale after
+        // a restart. Reads/writes the scale attribute only when natural-growth is enabled.
+        if (config.isNaturalGrowth() && growthTick) {
             double scale = ScaleUtil.getScale(fish);
-            if (growthTick && scale < 1.0) {
+            if (scale < 1.0) {
                 ScaleUtil.setScale(fish, grownScale(scale, config.getBabyScale(),
                         config.getGrowthDurationMinutes(), GROWTH_PERIOD_TICKS));
             }
-            fullGrown = ScaleUtil.isFullGrown(scale);
         }
 
         // Check for breeding timeout
@@ -119,12 +115,33 @@ public class FishManager {
         // (when the animal is fed), not continuously, due to MC-93826 — so the single burst
         // lives in consumeSeed(). See the note there before changing this.
 
-        // Find and move toward seeds if not breeding ready. A fish that isn't full-grown
-        // yet can't seek or eat seeds, so it can't become breeding-ready until it matures.
-        // Seeking is also gated on a nearby player so unattended fish don't farm seeds.
-        if (fullGrown && !fishData.isBreedingReady() && fishData.canBreed(config.getBreedingCooldownMinutes())
-                && PlayerProximityUtil.playerWithin(fish, config.getRequirePlayerWithin())) {
-            handleSeedSeeking(fishData, config);
+        // Seed discovery is push-based: ItemDropListener assigns a target seed when one lands
+        // in water nearby (see attractFishToSeed), so there is NO per-tick world scan for the
+        // common case. We only advance toward an already-assigned target.
+        //
+        // Safety net — a single bounded rescan fires on TRANSITIONS (never every idle tick):
+        //   * the fish just became eligible (matured / off cooldown / readiness expired /
+        //     required player arrived), detected via the wasEligibleToSeek rising edge; or
+        //   * its target was just lost (eaten by another fish / despawned) while it stays
+        //     eligible — so it can re-acquire a still-present nearby seed instead of giving up.
+        boolean eligible = isEligibleToSeek(fishData, fish, config);
+        boolean roseToEligible = eligible && !fishData.wasEligibleToSeek();
+        fishData.setWasEligibleToSeek(eligible);
+
+        boolean hadTarget = fishData.getTargetSeed() != null;
+        if (hadTarget) {
+            if (eligible) {
+                advanceTowardTarget(fishData, config);
+            } else {
+                fishData.setTargetSeed(null);
+            }
+        }
+        // Lost (not consumed): had a target, it's now gone, and we did not become breeding-ready.
+        boolean lostTarget = hadTarget && fishData.getTargetSeed() == null && !fishData.isBreedingReady();
+
+        if (eligible && fishData.getTargetSeed() == null && !fishData.isBreedingReady()
+                && (roseToEligible || lostTarget)) {
+            rescanForSeed(fishData, fish, config);
         }
     }
 
@@ -142,57 +159,122 @@ public class FishManager {
     }
 
     /**
-     * Handles fish seeking behavior for seeds
-     * @param fishData The fish data
-     * @param config The configuration manager
+     * Event-driven seed attraction: when a breeding seed lands in water, assign it as the
+     * target for nearby eligible fish of the matching type. This replaces the old per-fish,
+     * per-tick world scan with a single bounded scan per seed drop. Called (deferred one
+     * tick) from {@link com.mrsuffix.fishmating.listeners.ItemDropListener}.
+     *
+     * <p>Main thread only (Bukkit entity access). Only tracked, type-matching, eligible fish
+     * with no current target are attracted, so a fish commits to its first seed rather than
+     * thrashing between several that land together.
+     *
+     * @param seed the seed item that spawned in water
      */
-    private void handleSeedSeeking(FishData fishData, ConfigManager config) {
-        Entity fish = fishData.getEntity();
-        Material requiredSeed = config.getSeedForFish(fish.getType());
+    public void attractFishToSeed(Item seed) {
+        if (seed == null || !seed.isValid() || seed.isDead()) {
+            return;
+        }
+        ConfigManager config = plugin.getConfigManager();
+        Material seedType = seed.getItemStack().getType();
 
-        if (requiredSeed == null) return;
-
-        // Check if current target is still valid
-        Entity currentTarget = fishData.getTargetSeed();
-        if (currentTarget != null && (!currentTarget.isValid() || currentTarget.isDead())) {
-            fishData.setTargetSeed(null);
-            currentTarget = null;
+        // Respect the player-thrown gate (blocks dispenser/dropper farms). The one-tick defer
+        // in the listener ensures a player drop's thrower is populated before we read it.
+        if (config.isRequirePlayerThrownSeeds() && seed.getThrower() == null) {
+            return;
+        }
+        if (!isInWater(seed.getLocation())) {
+            return;
         }
 
-        // Find nearest matching seed if no current target
-        if (currentTarget == null) {
-            Item nearestSeed = findNearestSeed(fish.getLocation(), requiredSeed,
-                    config.getDetectionRadius(), config.isRequirePlayerThrownSeeds());
-            if (nearestSeed != null) {
-                fishData.setTargetSeed(nearestSeed);
-                currentTarget = nearestSeed;
+        double radius = config.getDetectionRadius();
+        // Filter the AABB scan to fish whose configured seed matches this drop, then attract
+        // only tracked, eligible, target-less ones.
+        for (Entity entity : seed.getWorld().getNearbyEntities(seed.getLocation(), radius, radius, radius,
+                e -> config.getSeedForFish(e.getType()) == seedType)) {
+            FishData fishData = fishDataMap.get(entity.getUniqueId());
+            if (fishData == null || fishData.getTargetSeed() != null) {
+                continue;
             }
-        }
-
-        // Move toward target seed
-        if (currentTarget instanceof Item) {
-            Item seedItem = (Item) currentTarget;
-            moveTowardSeed(fish, seedItem);
-
-            // Check if fish reached the seed
-            if (fish.getLocation().distance(seedItem.getLocation()) <= 1.5) {
-                consumeSeed(fishData, seedItem);
+            if (isEligibleToSeek(fishData, entity, config)) {
+                fishData.setTargetSeed(seed);
+                plugin.getLogger().fine(() -> "Fish attracted to seed: " + entity.getType());
             }
         }
     }
 
     /**
-     * Finds the nearest seed of the specified type within radius
-     * @param location The center location
-     * @param seedType The seed material type
-     * @param radius The search radius
-     * @param requirePlayerThrown When true, only seeds with a thrower (i.e. dropped by a
-     *                            player) qualify; dispenser/dropper-spawned seeds are skipped
-     * @return The nearest seed item, or null if none found
+     * Whether a fish may currently seek/consume a seed: full-grown, not already
+     * breeding-ready, off cooldown, and within range of a player (when
+     * {@code require-player-within} is set; 0 disables that gate).
+     */
+    private boolean isEligibleToSeek(FishData fishData, Entity fish, ConfigManager config) {
+        return ScaleUtil.isFullGrown(fish)
+                && !fishData.isBreedingReady()
+                && fishData.canBreed(config.getBreedingCooldownMinutes())
+                && PlayerProximityUtil.playerWithin(fish, config.getRequirePlayerWithin());
+    }
+
+    /**
+     * Advances a fish toward its already-assigned target seed and consumes it on arrival.
+     * The target is assigned event-driven by {@link #attractFishToSeed}; this does no seed
+     * discovery. A dead/invalid target is cleared.
+     *
+     * @param fishData the fish data (with a non-null target seed)
+     * @param config the configuration manager
+     */
+    private void advanceTowardTarget(FishData fishData, ConfigManager config) {
+        Entity fish = fishData.getEntity();
+        if (!(fishData.getTargetSeed() instanceof Item seedItem) || !seedItem.isValid() || seedItem.isDead()) {
+            fishData.setTargetSeed(null);
+            return;
+        }
+
+        moveTowardSeed(fish, seedItem);
+
+        // Consume once within range. MockBukkit has no physics, so a test fish must be
+        // spawned within this range to "reach" the seed (see TESTING.md).
+        if (fish.getLocation().distance(seedItem.getLocation()) <= 1.5) {
+            consumeSeed(fishData, seedItem);
+        }
+    }
+
+    /**
+     * One-shot transition rescan: find the nearest matching in-water seed around the fish and
+     * target it. Called only on an eligibility rising edge or target loss (see {@link
+     * #updateFish}), never on every idle tick, so it restores opportunistic re-targeting
+     * (a fish that lost its seed, just matured, came off cooldown, etc. picks up a still-present
+     * nearby seed) without reintroducing the old per-fish, per-tick polling.
+     *
+     * @param fishData the fish data (eligible and target-less)
+     * @param fish the fish entity
+     * @param config the configuration manager
+     */
+    private void rescanForSeed(FishData fishData, Entity fish, ConfigManager config) {
+        Material requiredSeed = config.getSeedForFish(fish.getType());
+        if (requiredSeed == null) {
+            return;
+        }
+        Item nearest = findNearestSeed(fish.getLocation(), requiredSeed,
+                config.getDetectionRadius(), config.isRequirePlayerThrownSeeds());
+        if (nearest != null) {
+            fishData.setTargetSeed(nearest);
+            plugin.getLogger().fine(() -> "Fish re-acquired a seed on transition: " + fish.getType());
+        }
+    }
+
+    /**
+     * Finds the nearest matching seed of the given type within radius, in water, respecting the
+     * player-thrown requirement. Used only by the transition rescan (not per tick).
+     *
+     * @param location the center location
+     * @param seedType the seed material to match
+     * @param radius the search radius
+     * @param requirePlayerThrown when true, seeds with no thrower (dispenser/dropper) are skipped
+     * @return the nearest qualifying seed item, or {@code null} if none
      */
     private Item findNearestSeed(Location location, Material seedType, double radius, boolean requirePlayerThrown) {
-        // Filter to items during the AABB scan, then compare squared distances to
-        // avoid the per-candidate sqrt of Location#distance.
+        // Filter to items during the AABB scan, then compare squared distances to avoid the
+        // per-candidate sqrt of Location#distance.
         Item nearest = null;
         double nearestDistanceSq = Double.MAX_VALUE;
 
@@ -202,8 +284,8 @@ public class FishManager {
             if (item.getItemStack().getType() != seedType) {
                 continue;
             }
-            // A dispenser/dropper-spawned seed has no thrower; require one to block
-            // fully automated breeding farms when configured.
+            // A dispenser/dropper-spawned seed has no thrower; require one to block fully
+            // automated breeding farms when configured.
             if (requirePlayerThrown && item.getThrower() == null) {
                 continue;
             }

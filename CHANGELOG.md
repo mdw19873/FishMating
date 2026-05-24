@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- **Performance:** seed seeking is now event-driven instead of polled. Previously every
+  tracked full-grown fish ran a `getNearbyEntities` seed scan every 0.5s — in stock config
+  (where `require-player-within` is off) that meant *every* adult fish in every loaded chunk
+  scanned twice a second whether or not any seeds existed. Now a seed landing in water
+  attracts nearby eligible fish via a single bounded scan per drop (`ItemDropListener` →
+  `FishManager.attractFishToSeed`), and the per-tick loop only advances fish that already have
+  a target. Breeding behaviour is unchanged. A transition safety net preserves opportunistic
+  re-targeting without per-tick polling: a single bounded rescan fires when a fish *becomes*
+  eligible (matures, comes off cooldown, readiness expires, or a required player arrives) or
+  when its target seed is eaten/despawns, so it re-acquires a still-present nearby seed instead
+  of giving up. (Remaining minor edge: a fish passively *wandering* into a pre-existing seed
+  pile isn't attracted until the next seed spawn — seeds are normally thrown at fish and
+  despawn in ~5m, so this is negligible.)
+
 ### Fixed
 - Closed a growth-gate bypass: a not-yet-grown fish can no longer be captured in a bucket.
   Vanilla fish buckets don't persist the `scale` attribute, so a bucketed baby would respawn
