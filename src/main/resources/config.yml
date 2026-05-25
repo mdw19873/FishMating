@@ -36,7 +36,12 @@ advanced:
   # Whether to log debug information (raises the plugin log level to FINE)
   debug-logging: false
 
-  # Maximum number of fish that can be tracked simultaneously
+  # Maximum number of fish tracked simultaneously. Since 1.6.0 seed seeking is event-driven
+  # (no per-fish, per-tick world scan), so the per-tick cost is tiny and per-fish memory is
+  # ~150-200 bytes (1000 fish ~= 0.2 MB). The default 1000 keeps things well bounded for most
+  # setups; large aquatic/ocean servers can raise it to several thousand with negligible CPU
+  # or memory impact. Fish beyond the cap simply aren't tracked (they won't seek or breed)
+  # until tracked fish free up (death / chunk unload).
   max-tracked-fish: 1000
 
   # Bred fish spawn small and grow to full size over time. Set false for full-size babies.

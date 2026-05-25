@@ -88,8 +88,14 @@ Everything from detection range to particle effects and breeding logic can be tw
 > **`max-tracked-fish`** caps how many fish the plugin tracks simultaneously. Fish are
 > tracked as they spawn or their chunks load; once the cap is reached, additional fish
 > are simply not tracked (they won't seek seeds or breed) until tracked fish are freed —
-> e.g. when they die or their chunk unloads. This bounds memory and CPU on busy servers.
-> Raise it for large aquatic servers, or lower it to be more conservative.
+> e.g. when they die or their chunk unloads.
+>
+> Since **1.6.0**, seed seeking is event-driven (a seed landing in water attracts nearby
+> fish; there is **no per-fish, per-tick world scan**), so the real cost of a tracked fish is
+> now very small: roughly **150–200 bytes** of memory each (≈ 0.2 MB at 1000) and a cheap
+> per-tick state check. The default **1000** keeps things well bounded for typical setups,
+> but large aquatic/ocean servers can raise it to **several thousand** with negligible CPU or
+> memory impact — lower it only if you want to be extra conservative on constrained hardware.
 
 > **`natural-growth`** makes bred fish spawn at `baby-scale` and grow to full size over
 > `growth-duration-minutes`. A fish can't breed until it's full-grown, and growth only
