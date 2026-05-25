@@ -115,11 +115,14 @@ public class FishMatingCommand implements TabExecutor {
     }
 
     private void handleStatus(CommandSender sender) {
+        ConfigManager config = plugin.getConfigManager();
+        int cooldownMinutes = config.getBreedingCooldownMinutes();
         Map<EntityType, Integer> perType = new EnumMap<>(EntityType.class);
         int total = 0;
         int breedingReady = 0;
         int seeking = 0;
         int growing = 0;
+        int onCooldown = 0;
 
         for (FishData data : plugin.getFishManager().getTrackedFish()) {
             Entity entity = data.getEntity();
@@ -137,9 +140,14 @@ public class FishMatingCommand implements TabExecutor {
             if (!ScaleUtil.isFullGrown(entity)) {
                 growing++;
             }
+            // On cooldown = has bred recently and can't breed again yet (canBreed is true
+            // for a fish that has never bred, so this counts only post-breed cooldowns).
+            if (!data.canBreed(cooldownMinutes)) {
+                onCooldown++;
+            }
         }
 
-        int cap = plugin.getConfigManager().getMaxTrackedFish();
+        int cap = config.getMaxTrackedFish();
         sendHeader(sender, "FishMating status");
         sendEntry(sender, "  ", "Tracked fish", total + " / " + cap);
         for (Map.Entry<EntityType, Integer> e : perType.entrySet()) {
@@ -147,6 +155,7 @@ public class FishMatingCommand implements TabExecutor {
         }
         sendEntry(sender, "  ", "Breeding-ready", breedingReady);
         sendEntry(sender, "  ", "Seeking a seed", seeking);
+        sendEntry(sender, "  ", "On breeding cooldown", onCooldown);
         sendEntry(sender, "  ", "Growing (immature)", growing);
         sendEntry(sender, "  ", "Active breeding pairs",
                 plugin.getBreedingManager().getActiveBreedingPairCount());

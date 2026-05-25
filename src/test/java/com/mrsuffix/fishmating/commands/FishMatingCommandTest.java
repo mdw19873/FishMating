@@ -147,7 +147,22 @@ class FishMatingCommandTest {
         assertTrue(out.contains("salmon: 2"), out);
         assertTrue(out.contains("cod: 1"), out);
         assertTrue(out.contains("Breeding-ready: 1"), out);
+        assertTrue(out.contains("On breeding cooldown: 0"), out);
         assertTrue(out.contains("Active breeding pairs: 0"), out);
+    }
+
+    @Test
+    @DisplayName("status counts fish that are on breeding cooldown")
+    void statusReportsCooldownCount() {
+        trackFish(EntityType.SALMON, 0, 64, 0);
+        Entity salmon2 = trackFish(EntityType.SALMON, 1, 64, 0);
+        plugin.getFishManager().getFishData(salmon2).setLastBreedingTime(); // just bred -> on cooldown
+
+        PlayerMock player = opPlayer();
+        server.execute("fishmating", player, "status");
+        String out = drain(player);
+
+        assertTrue(out.contains("On breeding cooldown: 1"), out);
     }
 
     @Test
