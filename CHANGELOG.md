@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.6.0] - 2026-05-25
 ### Changed
 - **Performance:** seed seeking is now event-driven instead of polled. Previously every
   tracked full-grown fish ran a `getNearbyEntities` seed scan every 0.5s — in stock config
@@ -138,7 +140,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Breeding-pair selection no longer skips fish.
 - Config loading is resilient to a missing `fish-mappings` section or a blank seed value.
 
-[Unreleased]: https://github.com/mdw19873/FishMating/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/mdw19873/FishMating/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/mdw19873/FishMating/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/mdw19873/FishMating/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/mdw19873/FishMating/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/mdw19873/FishMating/compare/v1.4.0...v1.4.1
