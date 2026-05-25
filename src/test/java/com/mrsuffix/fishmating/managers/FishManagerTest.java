@@ -261,6 +261,28 @@ class FishManagerTest {
     // ----- event-driven attraction (attractFishToSeed) ----------------------------
 
     @Test
+    @DisplayName("Bug #6: a seed thrown through the air still attracts fish once it lands in water")
+    void seedEnteringWaterAfterSpawnAttractsFish() {
+        // A thrown seed spawns at the player's hand — in AIR, not yet in the water it's
+        // tossed into — so the spawn-time location is not water. The listener must keep
+        // watching until the seed settles in water rather than checking only at spawn.
+        Item seed = dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0); // block here is still AIR
+        Entity salmon = trackedSalmon(0, 64, 0);
+
+        // While the seed is "in flight" (its block is air), no attraction happens.
+        server.getScheduler().performTicks(10L);
+        assertFalse(fishManager.getFishData(salmon).isBreedingReady(),
+                "a seed not yet in water should not attract fish");
+
+        // The seed comes to rest in water; the watcher must now attract the fish.
+        waterAt(0, 64, 0);
+        server.getScheduler().performTicks(40L);
+
+        assertTrue(fishManager.getFishData(salmon).isBreedingReady(),
+                "once the seed is in water the fish must seek and consume it");
+    }
+
+    @Test
     @DisplayName("attractFishToSeed assigns the seed as the target of an eligible nearby fish")
     void attractAssignsTargetToEligibleFish() {
         waterAt(0, 64, 0);

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Fish again seek seeds thrown into water from outside it (regression in 1.6.0's event-driven
+  seed seeking). A thrown seed's spawn event fires while the item is still in the air at the
+  player's hand, so the in-water check at spawn failed and attraction never ran for the seed
+  once it landed. `ItemDropListener` now watches a freshly spawned breeding seed for a few
+  seconds until it settles in water, then runs the attraction scan — so seeds tossed into a
+  pond/tank work again. Cost stays per-seed-drop (a handful of cheap block checks until it
+  lands), not per-fish.
 
 ## [1.6.0] - 2026-05-25
 ### Changed
