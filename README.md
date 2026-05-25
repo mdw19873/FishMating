@@ -126,7 +126,7 @@ Everything from detection range to particle effects and breeding logic can be tw
 
 ## 🛠 Installation
 
-1️⃣ Download **FishMating.jar** from the [latest release (v1.4.0)](https://github.com/mdw19873/FishMating/releases/tag/v1.4.0).
+1️⃣ Download **FishMating.jar** from the [latest release](https://github.com/mdw19873/FishMating/releases/latest).
 2️⃣ Place it in your server's `/plugins` folder.
 3️⃣ Restart or reload your server.
 4️⃣ Edit the `config.yml` to fit your server’s style!
@@ -153,14 +153,19 @@ Everything from detection range to particle effects and breeding logic can be tw
 ```
 FishMating/
 ├── src/
-│   ├── main/java/com/mrsuffix/fishmating/
-│   │   ├── FishMating.java          # Main plugin class
-│   │   ├── listeners/               # Event listeners
-│   │   ├── managers/                # Logic and tracking
-│   │   └── utils/                   # Helper classes
-├── resources/
-│   ├── plugin.yml
-│   └── config.yml
+│   ├── main/
+│   │   ├── java/org/mrsuffix/fishmating/   # package: com.mrsuffix.fishmating (dir ≠ package, by design)
+│   │   │   ├── FishMatingPlugin.java       # Main plugin class (entry point)
+│   │   │   ├── commands/                   # /fishmating command + tab completion
+│   │   │   ├── listeners/                  # Event listeners (spawn, death, item-drop, bucket)
+│   │   │   ├── managers/                   # ConfigManager, FishManager, BreedingManager
+│   │   │   ├── models/                     # FishData, BreedingPair
+│   │   │   ├── integrations/               # Optional soft-deps (WorldGuard)
+│   │   │   └── utils/                       # Helper classes
+│   │   └── resources/
+│   │       ├── plugin.yml
+│   │       └── config.yml
+│   └── test/                                # JUnit 6 + MockBukkit test suite
 └── README.md
 ```
 
