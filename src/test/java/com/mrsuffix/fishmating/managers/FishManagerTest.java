@@ -273,6 +273,22 @@ class FishManagerTest {
     }
 
     @Test
+    @DisplayName("attractFishToSeed ignores a fish that is not tracked (beyond the cap)")
+    void attractIgnoresUntrackedFish() {
+        waterAt(0, 64, 0);
+        Item seed = dropSeed(Material.WHEAT_SEEDS, 1, 0, 64, 0);
+        Entity salmon = world.spawnEntity(new Location(world, 0, 64, 0), EntityType.SALMON);
+        fishManager.removeFishData(salmon); // make it untracked
+        assertTrue(fishManager.getTrackedFish().isEmpty());
+
+        fishManager.attractFishToSeed(seed);
+
+        // Attraction must neither target nor start tracking an untracked fish.
+        assertTrue(fishManager.getTrackedFish().isEmpty(),
+                "attraction should only ever touch already-tracked fish");
+    }
+
+    @Test
     @DisplayName("attractFishToSeed skips a fish that is already breeding-ready")
     void attractSkipsBreedingReadyFish() {
         waterAt(0, 64, 0);

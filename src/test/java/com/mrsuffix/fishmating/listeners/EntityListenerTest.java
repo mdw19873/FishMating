@@ -154,4 +154,31 @@ class EntityListenerTest {
 
         assertFalse(event.isCancelled(), "non-mapped entities are not the plugin's concern");
     }
+
+    @Test
+    @DisplayName("Spawn of a non-mapped entity is not tracked")
+    void spawnIgnoresNonFish() {
+        Entity notAFish = new SimpleEntityMock(server); // type UNKNOWN
+
+        server.getPluginManager().callEvent(new org.bukkit.event.entity.EntitySpawnEvent(notAFish));
+
+        assertTrue(fishManager.getTrackedFish().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Death of a non-mapped entity is left untouched (drops/XP preserved)")
+    void deathOfNonFishIsIgnored() {
+        // A chicken is a LivingEntity but not a mapped fish, so both death handlers
+        // (drop suppression and untracking) must short-circuit on the type guard.
+        Entity chicken = world.spawnEntity(new Location(world, 0, 64, 0), EntityType.CHICKEN);
+
+        DamageSource source = DamageSource.builder(DamageType.GENERIC).build();
+        List<ItemStack> drops = new ArrayList<>(List.of(new ItemStack(Material.FEATHER)));
+        EntityDeathEvent event = new EntityDeathEvent((LivingEntity) chicken, source, drops, 5);
+        server.getPluginManager().callEvent(event);
+
+        assertEquals(1, event.getDrops().size(), "non-mapped loot must be untouched");
+        assertEquals(5, event.getDroppedExp(), "non-mapped XP must be untouched");
+        assertTrue(fishManager.getTrackedFish().isEmpty());
+    }
 }

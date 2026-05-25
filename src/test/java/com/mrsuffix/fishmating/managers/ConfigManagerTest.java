@@ -207,4 +207,31 @@ class ConfigManagerTest {
         assertNull(config.getSeedForFish(EntityType.SALMON));
         assertEquals(Material.PUMPKIN_SEEDS, config.getSeedForFish(EntityType.COD));
     }
+
+    @Test
+    @DisplayName("A mapping with an invalid entity type is skipped, not fatal")
+    void invalidEntityTypeSkipsOnlyThatEntry() {
+        // "dragon" is not a valid EntityType -> the per-entry valueOf throws and is caught.
+        plugin.getConfig().set("fish-mappings.dragon", "wheat_seeds");
+        plugin.saveConfig();
+
+        config.loadConfiguration(); // must not throw
+
+        // The bogus entry is dropped; the real defaults still load.
+        assertEquals(Material.WHEAT_SEEDS, config.getSeedForFish(EntityType.SALMON));
+        assertEquals(Material.PUMPKIN_SEEDS, config.getSeedForFish(EntityType.COD));
+    }
+
+    @Test
+    @DisplayName("A mapping with an invalid seed material is skipped, not fatal")
+    void invalidSeedMaterialSkipsOnlyThatEntry() {
+        // A valid fish but a bogus material -> Material.valueOf throws and is caught per entry.
+        plugin.getConfig().set("fish-mappings.salmon", "not_a_real_item");
+        plugin.saveConfig();
+
+        config.loadConfiguration(); // must not throw
+
+        assertNull(config.getSeedForFish(EntityType.SALMON)); // bad entry dropped
+        assertEquals(Material.PUMPKIN_SEEDS, config.getSeedForFish(EntityType.COD)); // others intact
+    }
 }
