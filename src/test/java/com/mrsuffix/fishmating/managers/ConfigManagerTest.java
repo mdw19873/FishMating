@@ -9,6 +9,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -103,14 +109,14 @@ class ConfigManagerTest {
     @Test
     @DisplayName("baby-scale is clamped to [0.1, 1.0] and growth-duration to at least 1")
     void growthValuesAreClamped() {
-        plugin.getConfig().set("advanced.baby-scale", 5.0);
-        plugin.getConfig().set("advanced.growth-duration-minutes", 0);
+        plugin.getConfig().set("settings.baby-scale", 5.0);
+        plugin.getConfig().set("settings.growth-duration-minutes", 0);
         plugin.saveConfig();
         config.loadConfiguration();
         assertEquals(1.0, config.getBabyScale());
         assertEquals(1, config.getGrowthDurationMinutes());
 
-        plugin.getConfig().set("advanced.baby-scale", 0.0);
+        plugin.getConfig().set("settings.baby-scale", 0.0);
         plugin.saveConfig();
         config.loadConfiguration();
         assertEquals(0.1, config.getBabyScale());
@@ -173,12 +179,12 @@ class ConfigManagerTest {
     void breedingSuccessRateIsClamped() {
         assertEquals(1.0, config.getBreedingSuccessRate());
 
-        plugin.getConfig().set("advanced.breeding-success-rate", 5.0);
+        plugin.getConfig().set("settings.breeding-success-rate", 5.0);
         plugin.saveConfig();
         config.loadConfiguration();
         assertEquals(1.0, config.getBreedingSuccessRate());
 
-        plugin.getConfig().set("advanced.breeding-success-rate", -2.0);
+        plugin.getConfig().set("settings.breeding-success-rate", -2.0);
         plugin.saveConfig();
         config.loadConfiguration();
         assertEquals(0.0, config.getBreedingSuccessRate());
@@ -233,5 +239,65 @@ class ConfigManagerTest {
 
         assertNull(config.getSeedForFish(EntityType.SALMON)); // bad entry dropped
         assertEquals(Material.PUMPKIN_SEEDS, config.getSeedForFish(EntityType.COD)); // others intact
+    }
+
+    // ----- section reorganization (1.7.0: growth + success-rate moved to settings) ------
+
+    @Test
+    @DisplayName("Options moved to 'settings' are read from their new location")
+    void movedOptionsLoadFromSettings() {
+        plugin.getConfig().set("settings.natural-growth", false);
+        plugin.getConfig().set("settings.baby-scale", 0.3);
+        plugin.getConfig().set("settings.growth-duration-minutes", 7);
+        plugin.getConfig().set("settings.breeding-success-rate", 0.25);
+        plugin.saveConfig();
+
+        config.loadConfiguration();
+
+        assertFalse(config.isNaturalGrowth());
+        assertEquals(0.3, config.getBabyScale());
+        assertEquals(7, config.getGrowthDurationMinutes());
+        assertEquals(0.25, config.getBreedingSuccessRate());
+    }
+
+    @Test
+    @DisplayName("A moved option left under 'advanced' is ignored (clean cut)")
+    void staleAdvancedKeyIsIgnored() {
+        // Value only under the OLD location; the new 'settings' key is absent.
+        plugin.getConfig().set("advanced.natural-growth", false);
+        plugin.saveConfig();
+
+        config.loadConfiguration();
+
+        // The old path is no longer read, so the default (true) is used, not false.
+        assertTrue(config.isNaturalGrowth(),
+                "a moved key under 'advanced' must be ignored, falling back to the default");
+    }
+
+    @Test
+    @DisplayName("A stale 'advanced' key triggers a migration warning")
+    void staleAdvancedKeyWarns() {
+        List<LogRecord> records = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override public void publish(LogRecord record) { records.add(record); }
+            @Override public void flush() { }
+            @Override public void close() { }
+        };
+        plugin.getLogger().addHandler(handler);
+        try {
+            plugin.getConfig().set("advanced.baby-scale", 0.4);
+            plugin.saveConfig();
+
+            config.loadConfiguration();
+        } finally {
+            plugin.getLogger().removeHandler(handler);
+        }
+
+        boolean warned = records.stream().anyMatch(r ->
+                r.getLevel() == Level.WARNING
+                        && r.getMessage() != null
+                        && r.getMessage().contains("baby-scale")
+                        && r.getMessage().contains("settings"));
+        assertTrue(warned, "expected a WARNING naming the moved key and the 'settings' section");
     }
 }

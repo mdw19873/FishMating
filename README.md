@@ -41,47 +41,50 @@ Every detail can be customized in the `config.yml` — from detection radius to 
 
 Here’s an example `config.yml` with full customization options:
 
-```yaml
-# FishMating Plugin Configuration
-# Author: mrsuffix
-# Version: ${project.version}
+The file has two tunable sections: **`settings`** (basic gameplay knobs) and **`advanced`**
+(anti-abuse, performance, integrations, and diagnostics most servers leave alone). The bundled
+file documents every option in detail; here's the shape of it:
 
-settings:
-  detection-radius: 5.0
-  breeding-timeout-seconds: 30
-  breeding-cooldown-minutes: 5
-  breeding-experience: 7
+```yaml
+settings:                        # basic gameplay tuning
+  # ---- Breeding ----
+  detection-radius: 5.0          # blocks; seed/partner detection range
+  breeding-timeout-seconds: 30   # how long "ready to breed" lasts after eating a seed
+  breeding-cooldown-minutes: 5   # wait between breeds (parents + newborn)
+  breeding-success-rate: 1.0     # chance a ready pair produces a baby (0.0-1.0)
+  breeding-experience: 7         # XP at the baby, random 1..value (0-7; 0 = off)
+  # ---- Growth ----
+  natural-growth: true           # babies spawn small and grow; false = full-size
+  baby-scale: 0.5                # newborn size when natural-growth is on (0.1-1.0)
+  growth-duration-minutes: 10    # baby -> adult time
+  # ---- Effects ----
   enable-particles: true
   particle-count: 5
 
-fish-mappings:
+fish-mappings:                   # entity_type: seed_material
   salmon: wheat_seeds
   cod: pumpkin_seeds
   pufferfish: melon_seeds
   tropical_fish: beetroot_seeds
 
-advanced:
-  # Raise the plugin log level to FINE for debug diagnostics
-  debug-logging: false
-  # Upper bound on how many fish are tracked at once (see note below)
-  max-tracked-fish: 1000
-  # Bred fish spawn small and grow to full size over time
-  natural-growth: true
-  # Starting size of a bred fish, 0.1-1.0 (used when natural-growth is on)
-  baby-scale: 0.5
-  # Minutes for a baby to grow to full size
-  growth-duration-minutes: 10
-  # Chance a ready pair produces a baby, 0.0-1.0
-  breeding-success-rate: 1.0
-  # Only player-thrown seeds attract fish (blocks dispenser/dropper auto-farms)
-  require-player-thrown-seeds: true
-  # Require a player within N blocks for fish to seek/breed; 0 disables
-  require-player-within: 0
-  # Respect the WorldGuard "allow-fish-breeding" region flag (needs WorldGuard)
-  worldguard-integration: false
-  # Bred babies inherit "won't despawn" persistence from a persisting parent
-  inherit-persistence: false
-````
+advanced:                        # ops / anti-abuse / integrations / diagnostics
+  # ---- Anti-abuse / farm controls ----
+  require-player-thrown-seeds: true  # ignore dispenser/dropper seeds
+  require-player-within: 0           # blocks; require a player nearby (0 disables)
+  # ---- Performance ----
+  max-tracked-fish: 1000             # cap on tracked fish (see note below)
+  # ---- Integrations ----
+  worldguard-integration: false      # respect the "allow-fish-breeding" region flag
+  # ---- Behavior ----
+  inherit-persistence: false         # bred babies inherit a persisting parent's "won't despawn"
+  # ---- Diagnostics ----
+  debug-logging: false               # raise the log level to FINE
+```
+
+> **Upgrading from a pre-1.7.0 config?** `natural-growth`, `baby-scale`,
+> `growth-duration-minutes`, and `breeding-success-rate` moved from `advanced` to `settings`.
+> Move those four keys under `settings:` in your existing file — the plugin logs a warning on
+> startup if it finds them still under `advanced` (where they're no longer read).
 
 Everything from detection range to particle effects and breeding logic can be tweaked! 🎛️
 

@@ -1,75 +1,117 @@
 # FishMating Plugin Configuration
 # Author: mrsuffix
 # Version: ${project.version}
+#
+# Two tunable sections:
+#   settings  - basic gameplay knobs that shape how breeding feels.
+#   advanced  - anti-abuse, performance, integrations, and diagnostics; most servers
+#               can leave these at their defaults.
+# Apply changes with a server restart or `/fishmating reload`.
 
-# General Settings
 settings:
-  # Radius in blocks for fish to detect seeds and other fish
+
+  # ---- Breeding ----
+
+  # Radius (in blocks) within which fish detect thrown seeds and nearby partners.
+  # Default: 5.0 · Range: > 0. Larger = fish notice seeds/partners from farther away.
   detection-radius: 5.0
 
-  # Time in seconds before breeding readiness expires
+  # How long (seconds) a fish stays "ready to breed" after eating a seed before the
+  # readiness lapses and it must be fed again.
+  # Default: 30 · Range: >= 1.
   breeding-timeout-seconds: 30
 
-  # Time in minutes fish must wait between breeding attempts
+  # How long (minutes) a fish must wait after breeding before it can breed again.
+  # Applies to both parents and the newborn.
+  # Default: 5 · Range: >= 0 (0 = no cooldown).
   breeding-cooldown-minutes: 5
 
-  # XP dropped at the baby when a pair breeds (random 1 to this value; vanilla is 1-7).
-  # Capped at 7; set to 0 to disable.
+  # Chance that a ready pair actually produces a baby. Lower it to make breeding rarer.
+  # Default: 1.0 · Range: 0.0-1.0 (1.0 = always, 0.0 = never).
+  breeding-success-rate: 1.0
+
+  # Experience dropped at the baby when a pair breeds (a random amount from 1 to this
+  # value), mirroring vanilla mob breeding.
+  # Default: 7 · Range: 0-7 (capped at vanilla's 7; 0 disables XP).
   breeding-experience: 7
 
-  # Whether to show particle effects
+  # ---- Growth ----
+
+  # Whether bred fish spawn small and grow to full size over time. When false, babies
+  # spawn full-size with no growth phase.
+  # Default: true.
+  natural-growth: true
+
+  # The size a newborn starts at when natural-growth is on (1.0 = full adult).
+  # Default: 0.5 · Range: 0.1-1.0.
+  baby-scale: 0.5
+
+  # How long (minutes) a baby takes to grow from baby-scale to full size.
+  # Default: 10 · Range: >= 1.
+  growth-duration-minutes: 10
+
+  # ---- Effects ----
+
+  # Whether to show particle effects (seed consumption, hearts, birth).
+  # Default: true.
   enable-particles: true
 
-  # Number of particles to show for effects
+  # How many particles each effect emits.
+  # Default: 5 · Range: >= 0.
   particle-count: 5
 
-# Fish to Seed Mappings
-# Format: fish_type: seed_material
+# Which fish breed from which seed. Format: entity_type: seed_material.
+# Both names use Bukkit enum names (lower-case is fine); an invalid entry is skipped
+# on load with a warning, leaving the rest intact.
 fish-mappings:
   salmon: wheat_seeds
   cod: pumpkin_seeds
   pufferfish: melon_seeds
   tropical_fish: beetroot_seeds
 
-# Advanced Settings
 advanced:
-  # Whether to log debug information (raises the plugin log level to FINE)
-  debug-logging: false
 
-  # Maximum number of fish tracked simultaneously. Since 1.6.0 seed seeking is event-driven
-  # (no per-fish, per-tick world scan), so the per-tick cost is tiny and per-fish memory is
-  # ~150-200 bytes (1000 fish ~= 0.2 MB). The default 1000 keeps things well bounded for most
-  # setups; large aquatic/ocean servers can raise it to several thousand with negligible CPU
-  # or memory impact. Fish beyond the cap simply aren't tracked (they won't seek or breed)
-  # until tracked fish free up (death / chunk unload).
-  max-tracked-fish: 1000
+  # ---- Anti-abuse / farm controls ----
 
-  # Bred fish spawn small and grow to full size over time. Set false for full-size babies.
-  natural-growth: true
-
-  # Starting size of a bred fish, 0.1-1.0 (1.0 = full adult); used when natural-growth is on.
-  baby-scale: 0.5
-
-  # Minutes for a baby to grow to full size.
-  growth-duration-minutes: 10
-
-  # Chance a ready pair actually produces a baby, 0.0-1.0.
-  breeding-success-rate: 1.0
-
-  # Only seeds thrown by a player attract fish. Blocks automated (dispenser/dropper)
-  # breeding farms. Set false to let any dropped seed work.
+  # When true, only seeds thrown by a player attract fish; dispenser/dropper-spawned
+  # seeds are ignored. Blocks fully automated breeding/XP farms.
+  # Default: true. Set false to let any dropped seed work.
   require-player-thrown-seeds: true
 
-  # Require a player within this many blocks for fish to seek seeds or breed. Blocks
-  # unattended/chunk-loader farms. 0 disables the check (no presence required).
+  # Require a non-spectator player within this many blocks for fish to seek seeds or
+  # breed. Stops unattended/chunk-loader farms from running while no one is around.
+  # Default: 0 · Range: >= 0 (0 disables the check). Try e.g. 32 to require presence.
   require-player-within: 0
 
-  # Respect the WorldGuard region flag "allow-fish-breeding". Breeding is allowed
+  # ---- Performance ----
+
+  # Maximum number of fish tracked simultaneously. Since 1.6.0 seed seeking is
+  # event-driven (no per-fish, per-tick world scan), so per-fish cost is tiny: ~150-200
+  # bytes of memory each (~0.2 MB at 1000) plus a cheap per-tick state check.
+  # Default: 1000 · Range: >= 1. Well bounded for most setups; large aquatic/ocean
+  # servers can raise it to several thousand cheaply. Fish beyond the cap simply aren't
+  # tracked (they won't seek or breed) until tracked fish free up (death / chunk unload).
+  max-tracked-fish: 1000
+
+  # ---- Integrations ----
+
+  # Respect the WorldGuard region flag "allow-fish-breeding": breeding is allowed
   # everywhere unless a region sets the flag to DENY. Requires WorldGuard installed;
   # ignored otherwise.
+  # Default: false. Turn on if you use WorldGuard to fence off breeding by region.
   worldguard-integration: false
 
+  # ---- Behavior ----
+
   # Let a bred baby inherit "won't despawn" persistence when at least one parent already
-  # persists (e.g. a fish placed from a bucket). Wild-fish offspring still despawn, so this
-  # only carries the trait forward through player-invested lineages.
+  # persists (e.g. a fish placed from a bucket). Wild-fish offspring still despawn, so
+  # this only carries the trait forward through player-invested lineages.
+  # Default: false.
   inherit-persistence: false
+
+  # ---- Diagnostics ----
+
+  # Raise the plugin's log level to FINE for verbose diagnostics. Leave off in normal
+  # operation; useful when debugging why fish aren't breeding.
+  # Default: false.
+  debug-logging: false

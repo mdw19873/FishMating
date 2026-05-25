@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bred recently and can't breed again yet), alongside the existing breeding-ready / seeking /
   growing counts.
 
+### Changed
+- Reorganized `config.yml` around a clear line: **`settings`** holds basic gameplay tuning and
+  **`advanced`** holds anti-abuse, performance, integrations, and diagnostics. As part of this,
+  `natural-growth`, `baby-scale`, `growth-duration-minutes`, and `breeding-success-rate` moved
+  from `advanced` to `settings`, and every option now has thorough, consistently formatted
+  documentation. **Operators upgrading an existing config must move those four keys under
+  `settings:`** — they're no longer read from `advanced`, and the plugin logs a startup/reload
+  warning naming any stale entries it finds.
+
 ## [1.6.1] - 2026-05-25
 ### Fixed
 - Fish again seek seeds thrown into water from outside it (regression in 1.6.0's event-driven

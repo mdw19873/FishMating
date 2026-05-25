@@ -242,7 +242,7 @@ class BreedingManagerTest {
     @Test
     @DisplayName("With natural growth off, a full-size bred fish still gets the breeding cooldown")
     void fullSizeBabyStillGetsCooldown() {
-        plugin.getConfig().set("advanced.natural-growth", false);
+        plugin.getConfig().set("settings.natural-growth", false);
         plugin.saveConfig();
         plugin.getConfigManager().loadConfiguration();
 
@@ -262,7 +262,7 @@ class BreedingManagerTest {
     @Test
     @DisplayName("With breeding-success-rate 0.0 no baby spawns, but parents still go on cooldown")
     void zeroSuccessRateProducesNoBabyButStillCools() {
-        plugin.getConfig().set("advanced.breeding-success-rate", 0.0);
+        plugin.getConfig().set("settings.breeding-success-rate", 0.0);
         plugin.saveConfig();
         plugin.getConfigManager().loadConfiguration();
 

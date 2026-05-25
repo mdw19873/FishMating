@@ -38,6 +38,15 @@ public class ConfigManager {
     /** Hard ceiling on breeding XP so it can never exceed vanilla mob breeding (1-7). */
     private static final int MAX_BREEDING_EXPERIENCE = 7;
 
+    /**
+     * Options that moved from the {@code advanced} section to {@code settings} (1.7.0). They are
+     * now read only from {@code settings}; if an operator's existing config still has them under
+     * {@code advanced}, {@link #warnAboutMovedKeys()} flags them so the value isn't silently lost.
+     */
+    private static final String[] MOVED_TO_SETTINGS = {
+            "breeding-success-rate", "natural-growth", "baby-scale", "growth-duration-minutes"
+    };
+
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
         this.fishSeedMappings = new HashMap<>();
@@ -69,16 +78,16 @@ public class ConfigManager {
             plugin.getLogger().setLevel(debugLogging ? Level.FINE : Level.INFO);
 
             // Probability (0.0-1.0) that a ready pair actually produces a baby; clamped.
-            double rate = plugin.getConfig().getDouble("advanced.breeding-success-rate", 1.0);
+            double rate = plugin.getConfig().getDouble("settings.breeding-success-rate", 1.0);
             breedingSuccessRate = Math.max(0.0, Math.min(1.0, rate));
 
             // Natural growth: bred fish spawn small (baby-scale) and grow to full size
             // over growth-duration-minutes. Scale is clamped to a sane (0.1, 1.0]; the
             // duration is at least 1 minute.
-            naturalGrowth = plugin.getConfig().getBoolean("advanced.natural-growth", true);
-            double scale = plugin.getConfig().getDouble("advanced.baby-scale", 0.5);
+            naturalGrowth = plugin.getConfig().getBoolean("settings.natural-growth", true);
+            double scale = plugin.getConfig().getDouble("settings.baby-scale", 0.5);
             babyScale = Math.max(0.1, Math.min(1.0, scale));
-            growthDurationMinutes = Math.max(1, plugin.getConfig().getInt("advanced.growth-duration-minutes", 10));
+            growthDurationMinutes = Math.max(1, plugin.getConfig().getInt("settings.growth-duration-minutes", 10));
 
             // When on, only player-thrown seeds attract fish; dispenser/dropper-spawned
             // seeds are ignored, which blocks fully automated breeding farms.
@@ -122,10 +131,35 @@ public class ConfigManager {
                 }
             }
 
+            warnAboutMovedKeys();
+
             plugin.getLogger().info("Configuration loaded successfully!");
 
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to load configuration", e);
+        }
+    }
+
+    /**
+     * Warns if any option that moved to the {@code settings} section is still present under its
+     * old {@code advanced} path. Those stale entries are no longer read, so their values would be
+     * silently ignored; this tells the operator to move them. No-op for fresh or migrated configs.
+     */
+    private void warnAboutMovedKeys() {
+        StringBuilder stale = new StringBuilder();
+        for (String key : MOVED_TO_SETTINGS) {
+            if (plugin.getConfig().contains("advanced." + key)) {
+                if (stale.length() > 0) {
+                    stale.append(", ");
+                }
+                stale.append(key);
+            }
+        }
+        if (stale.length() > 0) {
+            plugin.getLogger().warning("These options moved from 'advanced' to 'settings' and are "
+                    + "no longer read from 'advanced': " + stale + ". Move them under 'settings:' "
+                    + "(or delete the stale 'advanced' entries) to keep your tuning — defaults are "
+                    + "used meanwhile.");
         }
     }
 
