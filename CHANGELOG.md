@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bred recently and can't breed again yet), alongside the existing breeding-ready / seeking /
   growing counts.
 
+### Fixed
+- `inherit-persistence` now correctly detects **bucket-placed** parents. A fish from a bucket
+  won't despawn because of its `FromBucket` flag, but `LivingEntity#getRemoveWhenFarAway()` is
+  derived only from `PersistenceRequired` and ignores `FromBucket` — so the previous check
+  misread bucketed parents as non-persistent and the baby never inherited persistence (it then
+  despawned while its parents stayed). `PersistenceUtil.persists()` now also checks
+  `Bucketable#isFromBucket()`, so a baby bred from a bucketed (persistent) parent is made to
+  persist as intended. (Bug #7.)
+
 ### Changed
 - Reorganized `config.yml` around a clear line: **`settings`** holds basic gameplay tuning and
   **`advanced`** holds anti-abuse, performance, integrations, and diagnostics. As part of this,

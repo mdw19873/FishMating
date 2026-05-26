@@ -7,10 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Unit tests for {@link PersistenceUtil#shouldPersist(boolean, boolean, boolean)}, the pure
- * core of persistence inheritance. The live {@code removeWhenFarAway} read/write
- * ({@link PersistenceUtil#persists} / {@link PersistenceUtil#inheritPersistence}) is
- * unimplemented in MockBukkit, so it is covered only by the floor/ceiling compile guards.
+ * Unit tests for the pure cores of persistence inheritance —
+ * {@link PersistenceUtil#shouldPersist(boolean, boolean, boolean)} and
+ * {@link PersistenceUtil#persistsFromState(boolean, boolean)}. The live entity reads/writes
+ * ({@link PersistenceUtil#persists} / {@link PersistenceUtil#inheritPersistence}, which call
+ * {@code getRemoveWhenFarAway}/{@code isFromBucket}/{@code setRemoveWhenFarAway}) are
+ * unimplemented in MockBukkit, so they are covered only by the floor/ceiling compile guards.
  *
  * <p>Rule: a baby persists only when the feature is enabled AND at least one parent persists.
  */
@@ -37,5 +39,27 @@ class PersistenceUtilTest {
     @DisplayName("Enabled but neither parent persists does not persist")
     void enabledWithNoPersistentParentDoesNotPersist() {
         assertFalse(PersistenceUtil.shouldPersist(true, false, false));
+    }
+
+    @Test
+    @DisplayName("persistsFromState: PersistenceRequired (removeWhenFarAway == false) means persists")
+    void persistsWhenPersistenceRequired() {
+        assertTrue(PersistenceUtil.persistsFromState(false, false));
+        assertTrue(PersistenceUtil.persistsFromState(false, true));
+    }
+
+    @Test
+    @DisplayName("Bug #7: a bucketed fish persists even though removeWhenFarAway reports true")
+    void persistsWhenFromBucket() {
+        // getRemoveWhenFarAway() is computed only from PersistenceRequired and ignores
+        // FromBucket, so a bucket-placed fish reports removeWhenFarAway == true while still
+        // never despawning. persists() must still count it (so its baby inherits persistence).
+        assertTrue(PersistenceUtil.persistsFromState(true, true));
+    }
+
+    @Test
+    @DisplayName("persistsFromState: a plain despawnable fish does not persist")
+    void doesNotPersistWhenDespawnableAndNotBucketed() {
+        assertFalse(PersistenceUtil.persistsFromState(true, false));
     }
 }

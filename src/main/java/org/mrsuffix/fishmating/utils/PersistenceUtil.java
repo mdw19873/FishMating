@@ -1,5 +1,6 @@
 package com.mrsuffix.fishmating.utils;
 
+import io.papermc.paper.entity.Bucketable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
@@ -7,10 +8,15 @@ import org.bukkit.entity.LivingEntity;
  * Lets bred fish inherit "won't despawn" persistence from their parents, mirroring how a
  * fish placed from a bucket no longer despawns.
  *
- * <p>Despawning is controlled by {@link LivingEntity#getRemoveWhenFarAway()}: a fish that
- * <em>persists</em> (e.g. one placed from a bucket, which vanilla flags
- * {@code PersistenceRequired}) returns {@code false}. Setting it {@code false} on the
- * newborn makes the offspring persist too.
+ * <p>Despawning is governed by two independent flags. A name-tagged / API-persisted mob sets
+ * {@code PersistenceRequired}, which {@link LivingEntity#getRemoveWhenFarAway()} reflects
+ * (returning {@code false}). A <em>bucketed</em> fish, however, won't despawn because of its
+ * {@code FromBucket} flag — and {@code getRemoveWhenFarAway()} does <strong>not</strong> reflect
+ * that (it reads only {@code PersistenceRequired}), so a bucket-placed fish reports
+ * {@code getRemoveWhenFarAway() == true} despite never despawning. {@link #persists(Entity)}
+ * therefore also checks {@link Bucketable#isFromBucket()} (Bug #7). To make a newborn persist we
+ * set {@code removeWhenFarAway} to {@code false} (i.e. {@code PersistenceRequired}); the baby
+ * isn't from a bucket, so that is the correct lever for it.
  *
  * <p>This is gated by config and only inherits — a baby persists only when a parent already
  * does — so ordinary wild-fish breeding stays despawnable and bounded (the anti-farm model);
@@ -35,9 +41,27 @@ public final class PersistenceUtil {
         return enabled && (parent1Persists || parent2Persists);
     }
 
+    /**
+     * Pure persistence decision from the two independent flags, so it's unit-testable without
+     * the live (MockBukkit-unimplemented) entity reads.
+     *
+     * @param removeWhenFarAway value of {@link LivingEntity#getRemoveWhenFarAway()} (driven by
+     *                          {@code PersistenceRequired})
+     * @param fromBucket        whether the entity came from a bucket ({@code FromBucket})
+     * @return whether the entity won't despawn — i.e. {@code PersistenceRequired} is set OR it is
+     *         from a bucket
+     */
+    static boolean persistsFromState(boolean removeWhenFarAway, boolean fromBucket) {
+        return !removeWhenFarAway || fromBucket;
+    }
+
     /** @return whether the entity persists (won't despawn); {@code false} for non-living. */
     public static boolean persists(Entity entity) {
-        return entity instanceof LivingEntity living && !living.getRemoveWhenFarAway();
+        if (!(entity instanceof LivingEntity living)) {
+            return false;
+        }
+        boolean fromBucket = entity instanceof Bucketable bucketable && bucketable.isFromBucket();
+        return persistsFromState(living.getRemoveWhenFarAway(), fromBucket);
     }
 
     /**
