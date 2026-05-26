@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.7.0] - 2026-05-25
 ### Added
 - `/fishmating status` now reports how many tracked fish are **on breeding cooldown** (have
   bred recently and can't breed again yet), alongside the existing breeding-ready / seeking /
@@ -172,7 +174,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Breeding-pair selection no longer skips fish.
 - Config loading is resilient to a missing `fish-mappings` section or a blank seed value.
 
-[Unreleased]: https://github.com/mdw19873/FishMating/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/mdw19873/FishMating/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/mdw19873/FishMating/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/mdw19873/FishMating/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/mdw19873/FishMating/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/mdw19873/FishMating/compare/v1.5.0...v1.5.1
