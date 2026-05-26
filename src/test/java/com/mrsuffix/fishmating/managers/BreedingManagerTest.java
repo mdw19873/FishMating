@@ -93,7 +93,7 @@ class BreedingManagerTest {
     }
 
     @Test
-    @DisplayName("Bug #2: a fish in another world does not abort same-world pairing")
+    @DisplayName("Regression: a fish in another world does not abort same-world pairing")
     void crossWorldFishDoesNotBlockPairing() {
         // The lone fish lives in the first-added world, so it is the first entity
         // examined. Before the fix, comparing it to a fish in another world threw an
@@ -110,7 +110,7 @@ class BreedingManagerTest {
     }
 
     @Test
-    @DisplayName("Bug #3: four nearby ready fish form exactly two pairs, none skipped")
+    @DisplayName("Regression: four nearby ready fish form exactly two pairs, none skipped")
     void fourNearbyReadyFishFormTwoPairs() {
         WorldMock world = server.addSimpleWorld("w");
         spawnReadySalmon(world, 0, 0);

@@ -53,7 +53,7 @@ class ParticleUtilsTest {
     }
 
     @Test
-    @DisplayName("Bug #1: consumption particles use HAPPY_VILLAGER (not a honey fallback)")
+    @DisplayName("Regression: consumption particles use HAPPY_VILLAGER (not a honey fallback)")
     void consumptionParticlesUseHappyVillager() {
         ParticleUtils.showConsumptionParticles(new Location(world, 0, 64, 0));
 
@@ -69,7 +69,7 @@ class ParticleUtilsTest {
     }
 
     @Test
-    @DisplayName("Bug #1: birth particles use WITCH then HAPPY_VILLAGER")
+    @DisplayName("Regression: birth particles use WITCH then HAPPY_VILLAGER")
     void birthParticlesUseWitchAndHappyVillager() {
         ParticleUtils.showBirthParticles(new Location(world, 0, 64, 0));
 

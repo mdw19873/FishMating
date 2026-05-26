@@ -49,7 +49,7 @@ class PersistenceUtilTest {
     }
 
     @Test
-    @DisplayName("Bug #7: a bucketed fish persists even though removeWhenFarAway reports true")
+    @DisplayName("Regression: a bucketed fish persists even though removeWhenFarAway reports true")
     void persistsWhenFromBucket() {
         // getRemoveWhenFarAway() is computed only from PersistenceRequired and ignores
         // FromBucket, so a bucket-placed fish reports removeWhenFarAway == true while still

@@ -145,7 +145,7 @@ class FishManagerTest {
 
         assertTrue(fishManager.getFishData(salmon).isBreedingReady());
         assertFalse(seed.isDead());
-        // Bug #5 regression guard: the stack must actually shrink (3 -> 2).
+        // Regression guard: the stack must actually shrink (3 -> 2).
         assertEquals(2, seed.getItemStack().getAmount());
     }
 
@@ -261,7 +261,7 @@ class FishManagerTest {
     // ----- event-driven attraction (attractFishToSeed) ----------------------------
 
     @Test
-    @DisplayName("Bug #6: a seed thrown through the air still attracts fish once it lands in water")
+    @DisplayName("Regression: a seed thrown through the air still attracts fish once it lands in water")
     void seedEnteringWaterAfterSpawnAttractsFish() {
         // A thrown seed spawns at the player's hand — in AIR, not yet in the water it's
         // tossed into — so the spawn-time location is not water. The listener must keep

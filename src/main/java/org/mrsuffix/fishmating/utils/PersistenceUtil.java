@@ -14,7 +14,7 @@ import org.bukkit.entity.LivingEntity;
  * {@code FromBucket} flag — and {@code getRemoveWhenFarAway()} does <strong>not</strong> reflect
  * that (it reads only {@code PersistenceRequired}), so a bucket-placed fish reports
  * {@code getRemoveWhenFarAway() == true} despite never despawning. {@link #persists(Entity)}
- * therefore also checks {@link Bucketable#isFromBucket()} (Bug #7). To make a newborn persist we
+ * therefore also checks {@link Bucketable#isFromBucket()}. To make a newborn persist we
  * set {@code removeWhenFarAway} to {@code false} (i.e. {@code PersistenceRequired}); the baby
  * isn't from a bucket, so that is the correct lever for it.
  *

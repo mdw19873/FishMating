@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   misread bucketed parents as non-persistent and the baby never inherited persistence (it then
   despawned while its parents stayed). `PersistenceUtil.persists()` now also checks
   `Bucketable#isFromBucket()`, so a baby bred from a bucketed (persistent) parent is made to
-  persist as intended. (Bug #7.)
+  persist as intended.
 
 ### Changed
 - Reorganized `config.yml` around a clear line: **`settings`** holds basic gameplay tuning and
