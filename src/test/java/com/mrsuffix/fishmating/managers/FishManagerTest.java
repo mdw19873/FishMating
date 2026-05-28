@@ -413,4 +413,142 @@ class FishManagerTest {
         assertSame(other, data.getTargetSeed(),
                 "after losing its target the fish should re-acquire the other nearby seed");
     }
+
+    // ----- held-seed temptation (herding) -----------------------------------------
+
+    /** Adds a player at the given location holding {@code mainHand} in the main hand. */
+    private org.bukkit.entity.Player playerHolding(Material mainHand, double x, double y, double z) {
+        org.bukkit.entity.Player player = server.addPlayer();
+        player.teleport(new Location(world, x, y, z));
+        player.getInventory().setItemInMainHand(new ItemStack(mainHand));
+        return player;
+    }
+
+    @Test
+    @DisplayName("Holding a matching seed assigns a nearby adult fish a follow target (no breeding change)")
+    void heldSeedTemptsAdultFish() {
+        Entity salmon = trackedSalmon(0, 64, 0);
+        org.bukkit.entity.Player player = playerHolding(Material.WHEAT_SEEDS, 2, 64, 0);
+
+        runFishUpdate();
+
+        FishData data = fishManager.getFishData(salmon);
+        assertSame(player, data.getFollowTarget(), "fish should follow the seed-holding player");
+        assertNull(data.getTargetSeed(), "temptation must not assign a thrown-seed target");
+        assertFalse(data.isBreedingReady(), "temptation is herding only; it must not breed the fish");
+    }
+
+    @Test
+    @DisplayName("An off-hand seed also tempts matching fish")
+    void offHandSeedTempts() {
+        Entity salmon = trackedSalmon(0, 64, 0);
+        org.bukkit.entity.Player player = server.addPlayer();
+        player.teleport(new Location(world, 2, 64, 0));
+        player.getInventory().setItemInOffHand(new ItemStack(Material.WHEAT_SEEDS));
+
+        runFishUpdate();
+
+        assertSame(player, fishManager.getFishData(salmon).getFollowTarget());
+    }
+
+    @Test
+    @DisplayName("A held seed of the wrong type for this fish does not tempt it")
+    void nonMatchingHeldSeedDoesNotTempt() {
+        Entity salmon = trackedSalmon(0, 64, 0); // salmon eat WHEAT_SEEDS
+        playerHolding(Material.PUMPKIN_SEEDS, 2, 64, 0);
+
+        runFishUpdate();
+
+        assertNull(fishManager.getFishData(salmon).getFollowTarget());
+    }
+
+    @Test
+    @DisplayName("A fish committed to a thrown seed ignores a tempting player (seed wins)")
+    void thrownSeedWinsOverTemptation() {
+        Entity salmon = trackedSalmon(0, 64, 0);
+        Item seed = dropSeed(Material.WHEAT_SEEDS, 1, 3, 64, 0); // 3b away: targeted, not consumed
+        fishManager.getFishData(salmon).setTargetSeed(seed);
+        playerHolding(Material.WHEAT_SEEDS, 2, 64, 0);
+
+        runFishUpdate();
+
+        FishData data = fishManager.getFishData(salmon);
+        assertSame(seed, data.getTargetSeed(), "the fish should stay committed to its thrown seed");
+        assertNull(data.getFollowTarget(), "a seed-targeting fish must not be tempted");
+    }
+
+    @Test
+    @DisplayName("A following fish loses interest when the player stops holding the seed")
+    void losesInterestWhenSeedPutAway() {
+        Entity salmon = trackedSalmon(0, 64, 0);
+        org.bukkit.entity.Player player = playerHolding(Material.WHEAT_SEEDS, 2, 64, 0);
+
+        runFishUpdate();
+        assertSame(player, fishManager.getFishData(salmon).getFollowTarget());
+
+        player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+        runFishUpdate();
+
+        assertNull(fishManager.getFishData(salmon).getFollowTarget(),
+                "fish should stop following once the seed is no longer held");
+    }
+
+    @Test
+    @DisplayName("A following fish loses interest when the player leaves the temptation radius")
+    void losesInterestWhenPlayerLeavesRadius() {
+        Entity salmon = trackedSalmon(0, 64, 0);
+        org.bukkit.entity.Player player = playerHolding(Material.WHEAT_SEEDS, 2, 64, 0);
+
+        runFishUpdate();
+        assertSame(player, fishManager.getFishData(salmon).getFollowTarget());
+
+        player.teleport(new Location(world, 100, 64, 0)); // well beyond the 10-block radius
+        runFishUpdate();
+
+        assertNull(fishManager.getFishData(salmon).getFollowTarget());
+    }
+
+    @Test
+    @DisplayName("A spectator holding a seed does not tempt fish")
+    void spectatorDoesNotTempt() {
+        Entity salmon = trackedSalmon(0, 64, 0);
+        org.bukkit.entity.Player player = playerHolding(Material.WHEAT_SEEDS, 2, 64, 0);
+        player.setGameMode(org.bukkit.GameMode.SPECTATOR);
+
+        runFishUpdate();
+
+        assertNull(fishManager.getFishData(salmon).getFollowTarget());
+    }
+
+    @Test
+    @DisplayName("With seed-temptation disabled, holding a seed tempts no fish")
+    void temptationDisabledTemptsNothing() {
+        plugin.getConfig().set("settings.seed-temptation", false);
+        plugin.saveConfig();
+        plugin.getConfigManager().loadConfiguration();
+
+        Entity salmon = trackedSalmon(0, 64, 0);
+        playerHolding(Material.WHEAT_SEEDS, 2, 64, 0);
+
+        runFishUpdate();
+
+        assertNull(fishManager.getFishData(salmon).getFollowTarget());
+    }
+
+    @Test
+    @DisplayName("followVelocity mills (returns null) within the stop distance and dives toward a player beyond it")
+    void followVelocityStopAndClamp() {
+        // Within the 2.5-block stop distance horizontally: no push, the fish mills.
+        assertNull(FishManager.followVelocity(0, 64, 0, 1, 64, 0, 2.5, 0.3));
+        // Degenerate same position is also a no-op (avoids NaN from normalizing a zero vector).
+        assertNull(FishManager.followVelocity(0, 64, 0, 0, 64, 0, 2.5, 0.3));
+
+        // Player 10b away horizontally and 5b above: a finite velocity that never pushes up.
+        org.bukkit.util.Vector v = FishManager.followVelocity(0, 64, 0, 0, 69, 10, 2.5, 0.3);
+        assertNotNull(v);
+        assertTrue(Double.isFinite(v.getX()) && Double.isFinite(v.getY()) && Double.isFinite(v.getZ()));
+        assertTrue(v.getY() <= 0.0, "must never push the fish upward toward a player above water");
+        assertTrue(v.getY() >= -0.1, "downward velocity is floored at -0.1");
+        assertTrue(v.getZ() > 0, "horizontal velocity should aim toward the player");
+    }
 }

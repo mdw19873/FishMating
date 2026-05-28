@@ -6,11 +6,13 @@ import com.mrsuffix.fishmating.utils.ParticleUtils;
 import com.mrsuffix.fishmating.utils.PlayerProximityUtil;
 import com.mrsuffix.fishmating.utils.ScaleUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
@@ -36,6 +38,11 @@ public class FishManager {
      */
     private static final long GROWTH_PERIOD_TICKS = 30L;
     private static final long UPDATES_PER_GROWTH_STEP = GROWTH_PERIOD_TICKS / UPDATE_PERIOD_TICKS;
+
+    /** Vanilla TemptGoal stop distance: a tempted fish mills this close to the player (blocks). */
+    private static final double FOLLOW_STOP_DISTANCE = 2.5;
+    /** Approach speed toward a tempting player; matches the seed-approach speed. */
+    private static final double FOLLOW_SPEED = 0.3;
 
     private final FishMatingPlugin plugin;
     private final Map<UUID, FishData> fishDataMap;
@@ -75,6 +82,12 @@ public class FishManager {
 
         // Advance growth only on every Nth cycle to limit attribute-update packets.
         boolean growthTick = (updateCounter++ % UPDATES_PER_GROWTH_STEP) == 0;
+
+        // Held-seed temptation: assign follow targets by scanning players (not fish) before the
+        // per-fish loop, so a fish tempted this cycle also moves this cycle.
+        if (config.isSeedTemptation()) {
+            assignFollowTargets(config);
+        }
 
         // Update each fish
         for (FishData fishData : fishDataMap.values()) {
@@ -142,6 +155,15 @@ public class FishManager {
         if (eligible && fishData.getTargetSeed() == null && !fishData.isBreedingReady()
                 && (roseToEligible || lostTarget)) {
             rescanForSeed(fishData, fish, config);
+        }
+
+        // Held-seed temptation (herding): follow a tempting player, but only when not committed
+        // to a thrown seed — the seed always wins. Targets are assigned by assignFollowTargets;
+        // here we advance/invalidate them with cheap field reads + one held-item read.
+        if (config.isSeedTemptation() && fishData.getTargetSeed() == null) {
+            advanceTowardFollowTarget(fishData, fish, config);
+        } else if (fishData.getFollowTarget() != null) {
+            fishData.setFollowTarget(null); // a seed took over, or temptation was disabled
         }
     }
 
@@ -212,6 +234,114 @@ public class FishManager {
                 && !fishData.isBreedingReady()
                 && fishData.canBreed(config.getBreedingCooldownMinutes())
                 && PlayerProximityUtil.playerWithin(fish, config.getRequirePlayerWithin());
+    }
+
+    /**
+     * Held-seed temptation scan pass: for each non-spectator player holding a matching breeding
+     * seed, one bounded {@code getNearbyEntities} scan around that player assigns the player as
+     * the follow target of nearby tracked, matching, full-grown, seed-less fish. Herding only —
+     * it never changes breeding state.
+     *
+     * <p>Main thread only. The number of scans is bounded by players-holding-a-seed, NOT by the
+     * tracked-fish count, so this preserves the no-per-fish-scan rule (see CLAUDE.md Performance).
+     * A fish with a thrown-seed target is skipped: the seed always wins.
+     *
+     * @param config the configuration manager
+     */
+    private void assignFollowTargets(ConfigManager config) {
+        double radius = config.getTemptationRadius();
+        if (radius <= 0) {
+            return;
+        }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getGameMode() == GameMode.SPECTATOR) {
+                continue;
+            }
+            Material held = config.heldBreedingSeed(
+                    player.getInventory().getItemInMainHand(),
+                    player.getInventory().getItemInOffHand());
+            if (held == null) {
+                continue;
+            }
+            for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(),
+                    radius, radius, radius, e -> config.getSeedForFish(e.getType()) == held)) {
+                FishData fishData = fishDataMap.get(entity.getUniqueId());
+                if (fishData == null || fishData.getTargetSeed() != null) {
+                    continue; // untracked, or already committed to a thrown seed
+                }
+                if (ScaleUtil.isFullGrown(entity)) {
+                    fishData.setFollowTarget(player);
+                }
+            }
+        }
+    }
+
+    /**
+     * Advances a fish toward the player it is being tempted by, keeping it in water and stopping
+     * within {@link #FOLLOW_STOP_DISTANCE}. Clears the follow target ("loses interest") when the
+     * player is gone, spectating, in another world, beyond {@code temptation-radius}, or no longer
+     * holding the seed that matches this fish. Cheap: field reads plus one held-item read.
+     *
+     * @param fishData the fish data (with a follow target to evaluate)
+     * @param fish the fish entity
+     * @param config the configuration manager
+     */
+    private void advanceTowardFollowTarget(FishData fishData, Entity fish, ConfigManager config) {
+        if (!(fishData.getFollowTarget() instanceof Player player)
+                || !player.isOnline()
+                || player.getGameMode() == GameMode.SPECTATOR
+                || !player.getWorld().equals(fish.getWorld())) {
+            fishData.setFollowTarget(null);
+            return;
+        }
+        double radius = config.getTemptationRadius();
+        double dx = player.getX() - fish.getX();
+        double dy = player.getY() - fish.getY();
+        double dz = player.getZ() - fish.getZ();
+        if (dx * dx + dy * dy + dz * dz > radius * radius) {
+            fishData.setFollowTarget(null); // wandered out of range
+            return;
+        }
+        Material held = config.heldBreedingSeed(
+                player.getInventory().getItemInMainHand(),
+                player.getInventory().getItemInOffHand());
+        if (held == null || config.getSeedForFish(fish.getType()) != held) {
+            fishData.setFollowTarget(null); // stopped holding a matching seed
+            return;
+        }
+        Vector velocity = followVelocity(fish.getX(), fish.getY(), fish.getZ(),
+                player.getX(), player.getY(), player.getZ(), FOLLOW_STOP_DISTANCE, FOLLOW_SPEED);
+        if (velocity != null) {
+            fish.setVelocity(velocity);
+        }
+    }
+
+    /**
+     * Horizontal-biased approach velocity toward a tempting player, kept in water. Pure (no
+     * entity/Bukkit access) so it is unit-testable without physics. Returns {@code null} when the
+     * fish is within {@code stopDistance} horizontally (mill, no push) or essentially on the
+     * player. Positive Y is clamped to 0 then floored at -0.1, so a player standing above/beside
+     * the water never lifts the fish out of it.
+     *
+     * @return the velocity to apply, or {@code null} to apply none this tick
+     */
+    static Vector followVelocity(double fx, double fy, double fz,
+                                 double px, double py, double pz,
+                                 double stopDistance, double speed) {
+        double dx = px - fx;
+        double dz = pz - fz;
+        if (dx * dx + dz * dz <= stopDistance * stopDistance) {
+            return null; // close enough horizontally: mill near the player
+        }
+        double dy = py - fy;
+        Vector direction = new Vector(dx, dy, dz);
+        if (direction.lengthSquared() < 1.0E-6) {
+            return null;
+        }
+        Vector velocity = direction.normalize().multiply(speed);
+        // Never push the fish upward toward a player above the water; a gentle sink is fine.
+        velocity.setY(Math.max(Math.min(velocity.getY(), 0.0), -0.1));
+        return velocity;
     }
 
     /**

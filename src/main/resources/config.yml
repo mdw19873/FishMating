@@ -50,6 +50,19 @@ settings:
   # Default: 10 · Range: >= 1.
   growth-duration-minutes: 10
 
+  # ---- Temptation (herding) ----
+
+  # When true, holding a fish's breeding seed (main or off hand) makes nearby matching
+  # fish swim toward and follow you — like leading farm animals with food in vanilla.
+  # This only herds them: it does NOT feed them, make them breeding-ready, or breed them.
+  # To breed, still throw a seed into the water.
+  # Default: true.
+  seed-temptation: true
+
+  # How far (blocks) a held seed attracts matching fish.
+  # Default: 10.0 · Range: 0.0-64.0 (0 disables; vanilla farm animals use 10).
+  temptation-radius: 10.0
+
   # ---- Effects ----
 
   # Whether to show particle effects (seed consumption, hearts, birth).

@@ -3,6 +3,7 @@ package com.mrsuffix.fishmating.managers;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
@@ -30,6 +31,8 @@ public class ConfigManager {
     private boolean naturalGrowth;
     private double babyScale;
     private int growthDurationMinutes;
+    private boolean seedTemptation;
+    private double temptationRadius;
     private boolean requirePlayerThrownSeeds;
     private double requirePlayerWithin;
     private boolean worldGuardIntegration;
@@ -88,6 +91,13 @@ public class ConfigManager {
             double scale = plugin.getConfig().getDouble("settings.baby-scale", 0.5);
             babyScale = Math.max(0.1, Math.min(1.0, scale));
             growthDurationMinutes = Math.max(1, plugin.getConfig().getInt("settings.growth-duration-minutes", 10));
+
+            // Held-seed temptation (herding): holding a fish's seed makes matching fish swim
+            // toward the player. Attract-only — never feeds/breeds. The radius is clamped to
+            // [0, 64] (0 disables; 64 matches the command query-radius cap and bounds the scan).
+            seedTemptation = plugin.getConfig().getBoolean("settings.seed-temptation", true);
+            double temptRadius = plugin.getConfig().getDouble("settings.temptation-radius", 10.0);
+            temptationRadius = Math.max(0.0, Math.min(64.0, temptRadius));
 
             // When on, only player-thrown seeds attract fish; dispenser/dropper-spawned
             // seeds are ignored, which blocks fully automated breeding farms.
@@ -194,6 +204,25 @@ public class ConfigManager {
         return fishSeedMappings.containsValue(material);
     }
 
+    /**
+     * Returns the breeding-seed {@link Material} a player is holding, for held-seed temptation.
+     * The main hand wins over the off hand. Pure (reads only {@link ItemStack#getType()}) so it
+     * is unit-testable without a live {@code Player}.
+     *
+     * @param mainHand the main-hand item (may be null/empty)
+     * @param offHand the off-hand item (may be null/empty)
+     * @return the breeding-seed material held, main hand first, or {@code null} if neither is one
+     */
+    public Material heldBreedingSeed(ItemStack mainHand, ItemStack offHand) {
+        if (mainHand != null && isBreedingSeed(mainHand.getType())) {
+            return mainHand.getType();
+        }
+        if (offHand != null && isBreedingSeed(offHand.getType())) {
+            return offHand.getType();
+        }
+        return null;
+    }
+
     // Getters for configuration values
     public double getDetectionRadius() { return detectionRadius; }
     public int getBreedingTimeoutSeconds() { return breedingTimeoutSeconds; }
@@ -212,6 +241,10 @@ public class ConfigManager {
     public double getBabyScale() { return babyScale; }
     /** @return minutes for a baby to grow from baby-scale to full size. */
     public int getGrowthDurationMinutes() { return growthDurationMinutes; }
+    /** @return whether holding a fish's seed attracts (herds) matching fish toward the player. */
+    public boolean isSeedTemptation() { return seedTemptation; }
+    /** @return radius (blocks, clamped 0-64) a held seed attracts matching fish; 0 disables. */
+    public double getTemptationRadius() { return temptationRadius; }
     /** @return whether only player-thrown seeds attract fish (blocks dispenser automation). */
     public boolean isRequirePlayerThrownSeeds() { return requirePlayerThrownSeeds; }
     /** @return radius (blocks) a player must be within for fish to seek/breed; 0 disables. */
