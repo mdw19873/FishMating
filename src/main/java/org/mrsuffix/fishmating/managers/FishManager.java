@@ -287,7 +287,13 @@ public class FishManager {
      * @param config the configuration manager
      */
     private void advanceTowardFollowTarget(FishData fishData, Entity fish, ConfigManager config) {
-        if (!(fishData.getFollowTarget() instanceof Player player)
+        // Most tracked fish have no follow target most of the time; short-circuit so the
+        // per-fish hot path is one field read + one branch in the common case.
+        Entity rawTarget = fishData.getFollowTarget();
+        if (rawTarget == null) {
+            return;
+        }
+        if (!(rawTarget instanceof Player player)
                 || !player.isOnline()
                 || player.getGameMode() == GameMode.SPECTATOR
                 || !player.getWorld().equals(fish.getWorld())) {
