@@ -12,6 +12,7 @@ public class FishData {
     private long breedingReadyTime;
     private long lastBreedingTime;
     private Entity targetSeed;
+    private Entity followTarget;
     private boolean wasEligibleToSeek;
 
     public FishData(Entity entity) {
@@ -20,6 +21,7 @@ public class FishData {
         this.breedingReadyTime = 0;
         this.lastBreedingTime = 0;
         this.targetSeed = null;
+        this.followTarget = null;
         // Default true so a freshly tracked adult is not seen as a fresh eligibility
         // transition on its first update (avoids a one-shot rescan burst on enable/reload).
         this.wasEligibleToSeek = true;
@@ -122,6 +124,25 @@ public class FishData {
      */
     public void setTargetSeed(Entity targetSeed) {
         this.targetSeed = targetSeed;
+    }
+
+    /**
+     * Gets the player this fish is following because they hold its breeding seed (held-seed
+     * temptation / herding). {@code null} when the fish isn't being tempted.
+     * @return the followed player entity, or null
+     */
+    public Entity getFollowTarget() {
+        return followTarget;
+    }
+
+    /**
+     * Sets the player this fish follows for held-seed temptation. Herding only: it never
+     * changes breeding state, and a {@link #getTargetSeed() thrown-seed target} always takes
+     * priority over it.
+     * @param followTarget the player to follow, or null to stop following
+     */
+    public void setFollowTarget(Entity followTarget) {
+        this.followTarget = followTarget;
     }
 
     /**

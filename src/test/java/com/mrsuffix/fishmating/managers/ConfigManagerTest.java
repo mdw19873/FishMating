@@ -3,6 +3,7 @@ package com.mrsuffix.fishmating.managers;
 import com.mrsuffix.fishmating.FishMatingPlugin;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
+import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -120,6 +121,44 @@ class ConfigManagerTest {
         plugin.saveConfig();
         config.loadConfiguration();
         assertEquals(0.1, config.getBabyScale());
+    }
+
+    @Test
+    @DisplayName("seed-temptation defaults on with a 10.0-block temptation-radius")
+    void temptationDefaults() {
+        assertTrue(config.isSeedTemptation());
+        assertEquals(10.0, config.getTemptationRadius());
+    }
+
+    @Test
+    @DisplayName("temptation-radius is clamped to [0.0, 64.0]")
+    void temptationRadiusIsClamped() {
+        plugin.getConfig().set("settings.temptation-radius", 999.0);
+        plugin.saveConfig();
+        config.loadConfiguration();
+        assertEquals(64.0, config.getTemptationRadius());
+
+        plugin.getConfig().set("settings.temptation-radius", -5.0);
+        plugin.saveConfig();
+        config.loadConfiguration();
+        assertEquals(0.0, config.getTemptationRadius());
+    }
+
+    @Test
+    @DisplayName("heldBreedingSeed prefers the main-hand seed, falls back to off-hand, else null")
+    void heldBreedingSeedPrecedence() {
+        ItemStack wheat = new ItemStack(Material.WHEAT_SEEDS);
+        ItemStack pumpkin = new ItemStack(Material.PUMPKIN_SEEDS);
+        ItemStack stone = new ItemStack(Material.STONE);
+
+        // Main hand wins when both hands hold a breeding seed.
+        assertEquals(Material.WHEAT_SEEDS, config.heldBreedingSeed(wheat, pumpkin));
+        // Falls back to the off hand when the main hand isn't a seed.
+        assertEquals(Material.PUMPKIN_SEEDS, config.heldBreedingSeed(stone, pumpkin));
+        assertEquals(Material.PUMPKIN_SEEDS, config.heldBreedingSeed(null, pumpkin));
+        // Neither hand holds a breeding seed.
+        assertNull(config.heldBreedingSeed(stone, stone));
+        assertNull(config.heldBreedingSeed(null, null));
     }
 
     @Test

@@ -19,6 +19,7 @@ Every detail can be customized in the `config.yml` — from detection radius to 
 
 ✅ Works with Minecraft **1.21.x through 26.1**  
 ✅ Attract fish by throwing seeds into water 🌱  
+✅ Herd fish by **holding** their seed — they swim toward and follow you, vanilla-style 🎣  
 ✅ Fully configurable detection radius, cooldowns, particles, and more  
 ✅ Heart particles show breeding readiness ❤️  
 ✅ Supports four fish types by default:  
@@ -57,6 +58,9 @@ settings:                        # basic gameplay tuning
   natural-growth: true           # babies spawn small and grow; false = full-size
   baby-scale: 0.5                # newborn size when natural-growth is on (0.1-1.0)
   growth-duration-minutes: 10    # baby -> adult time
+  # ---- Temptation (herding) ----
+  seed-temptation: true          # holding a seed makes matching fish follow you (attract-only)
+  temptation-radius: 10.0        # blocks; held-seed follow range (0.0-64.0; 0 disables)
   # ---- Effects ----
   enable-particles: true
   particle-count: 5
@@ -108,6 +112,14 @@ Everything from detection range to particle effects and breeding logic can be tw
 > also can't be captured in a bucket (vanilla buckets would reset it to full size on
 > placement, skipping the growth gate); let it mature first. Set `natural-growth: false`
 > for full-size offspring with no growth phase.
+
+> **`seed-temptation`** (default **true**) makes fish follow a player who *holds* their
+> breeding seed (main or off hand) — they swim toward and gather near you within
+> `temptation-radius` (default **10** blocks; vanilla farm animals use 10), and lose interest
+> once you put the seed away or move out of range. This is **herding only**: holding a seed
+> never feeds, readies, or breeds the fish — to breed, still throw a seed into the water. A
+> fish already heading for a thrown seed ignores temptation (the seed wins). Set
+> `temptation-radius: 0` (or `seed-temptation: false`) to turn it off.
 
 > **`require-player-thrown-seeds`** (default **true**) makes only seeds *thrown by a
 > player* attract fish, so dispenser/dropper-fed contraptions can't run automated

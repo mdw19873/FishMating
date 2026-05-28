@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Held-seed temptation (herding):** holding a fish's breeding seed in your main or off hand
+  now attracts nearby matching fish, which swim toward and follow you — like leading farm
+  animals with food in vanilla (default radius 10 blocks). This is **attract-only**: it does
+  not feed the fish, change breeding-readiness, or breed them; to breed, still throw a seed into
+  the water. A thrown-seed target always takes priority over following. Controlled by the new
+  `settings.seed-temptation` (default `true`) and `settings.temptation-radius`
+  (default `10.0`, clamped 0.0–64.0; 0 disables).
 
 ## [1.7.0] - 2026-05-25
 ### Added
