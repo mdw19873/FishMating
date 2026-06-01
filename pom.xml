@@ -35,7 +35,7 @@
              directly so compilation and MockBukkit can resolve it. -->
         <adventure.version>4.26.1</adventure.version>
         <jacoco.version>0.8.14</jacoco.version>
-        <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
     </properties>
 
     <repositories>
