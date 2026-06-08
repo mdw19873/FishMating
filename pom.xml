@@ -34,7 +34,7 @@
              including the serializers MockBukkit pulls in — and declare adventure-api
              directly so compilation and MockBukkit can resolve it. -->
         <adventure.version>4.26.1</adventure.version>
-        <jacoco.version>0.8.14</jacoco.version>
+        <jacoco.version>0.8.15</jacoco.version>
         <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
     </properties>
 
